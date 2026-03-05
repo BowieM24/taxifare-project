@@ -1,12 +1,14 @@
-# taxifare-project
+# TaxiFare
 
+**Digital Payment Solution for Minibus Taxi Transport**
 
+TaxiFare is a comprehensive digital payment and management system designed to modernize minibus taxi operations across South Africa. By replacing cash-based fare collection with secure QR code and USSD payments, TaxiFare eliminates theft risks, improves operational efficiency, and provides real-time transaction data for better planning and growth.
 
-## Getting started
+## Documentation
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **[Flow Diagram](./TaxiFare_flow_diagram_.pdf)** - System architecture and process flow
+- **[Presentation](./TaxiFare_BeOrchid_Presentation.pptx)** - Project overview and key features
+- **[Development Roadmap](./Developement_roadmap.docx)** - Project timeline and milestones
 
 ## Features
 
