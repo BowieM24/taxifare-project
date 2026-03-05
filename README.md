@@ -8,39 +8,45 @@ To make it easy for you to get started with GitLab, here's a list of recommended
 
 Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-## Add your files
+## Features
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+- **QR Code Payment System** - Every seat in the minibus has a designated QR code for seamless fare collection
+- **USSD Integration** - Commuters are directed to their banking app to approve transactions with a temporary PIN
+- **Real-time Seat Status** - Driver dashboard displays seat availability in real-time (green for available)
+- **Digital Transaction Receipts** - SMS receipts sent to commuters for every transaction
+- **Commuter Profiles** - Track commuter history and transaction data
+- **Revenue Analytics** - Comprehensive trip and revenue data for planning and growth
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/taxifare/taxifare-project.git
-git branch -M main
-git push -uf origin main
-```
+## System Architecture
 
-## Integrate with your tools
+TaxiFare consists of three main components:
 
-* [Set up project integrations](https://gitlab.com/taxifare/taxifare-project/-/settings/integrations)
+1. **Mobile App** - Commuter-facing application for QR scanning and payment approval
+2. **Backend** - Core system handling payment processing, data management, and real-time updates
+3. **Driver/Merchant Dashboard** - Driver interface for seat management and trip monitoring
 
-## Collaborate with your team
+## Tech Stack
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+| Layer | Technology | Rationale |
+|-------|-----------|----------|
+| **Frontend (Mobile)** | React Native or Flutter | Cross-platform (iOS/Android) with excellent QR scanning and USSD libraries |
+| **Backend** | Node.js (Express) or Python (FastAPI) | High performance for processing TaxiFare transactions |
+| **Database** | PostgreSQL | Relational database for commuter profiles and transaction receipts |
+| **Real-time Updates** | Socket.io or Firebase | Instant seat status updates on driver dashboard |
+| **Payments/SMS** | Stitch/Ozow & Twilio | South African bank-to-bank (EFT) payments and SMS receipts |
 
-## Test and Deploy
+## Use Cases & Problem Statement
 
-Use the built-in continuous integration in GitLab.
+**Market Context:**
+- Over 15 million commuters daily rely on minibus transport (vital to national transport infrastructure)
+- Current cash-based system causes delays, theft risks, and data gaps
+- Lack of reliable trip and revenue data hinders planning and growth
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+**TaxiFare Solution:**
+- Eliminates manual cash handling and associated risks
+- Provides real-time transaction data for better planning
+- Improves operational efficiency and revenue tracking
+- Enhances commuter experience with digital receipts
 
 ***
 
