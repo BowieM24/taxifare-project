@@ -1,12 +1,16 @@
-# taxifare-project
+# TaxiFare Project
 
+A comprehensive taxi fare management and optimization system.
 
+## Documentation
 
-## Getting started
+- **[Flow Diagram](./TaxiFare_flow_diagram_.pdf)** - System architecture and process flow
+- **[Presentation](./TaxiFare_BeOrchid_Presentation.pptx)** - Project overview and key features
+- **[Development Roadmap](./Developement_roadmap.docx)** - Project timeline and milestones
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Getting Started
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+To get started with this project, review the documentation files above and follow the setup instructions below.
 
 ## Add your files
 
