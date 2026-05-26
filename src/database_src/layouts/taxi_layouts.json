@@ -1,0 +1,19 @@
+{
+  "toyota_quantum_16": {
+    "name": "Standard 16 Seater",
+    "rows": [
+      {"row_index": 1, "seats": [{"id": "driver", "type": "driver"}, {"id": "seat_1", "type": "passenger"}]},
+      {"row_index": 2, "seats": [{"id": "seat_2", "type": "passenger"}, {"id": "seat_3", "type": "passenger"}, {"id": "seat_4", "type": "passenger"}]},
+      {"row_index": 3, "seats": [{"id": "aisle", "type": "aisle"}, {"id": "seat_5", "type": "passenger"}, {"id": "seat_6", "type": "passenger"}]},
+      {"row_index": 4, "seats": [{"id": "seat_7", "type": "passenger"}, {"id": "seat_8", "type": "passenger"}, {"id": "seat_9", "type": "passenger"}]},
+      {"row_index": 5, "seats": [{"id": "seat_10", "type": "passenger"}, {"id": "seat_11", "type": "passenger"}, {"id": "seat_12", "type": "passenger"}, {"id": "seat_13", "type": "passenger"}]}
+    ]
+  },
+  "vw_crafter_22": {
+    "name": "Long Distance 22 Seater",
+    "rows": [
+      {"row_index": 1, "seats": [{"id": "driver", "type": "driver"}, {"id": "seat_1", "type": "passenger"}, {"id": "seat_2", "type": "passenger"}]},
+      {"row_index": 2, "seats": [{"id": "seat_3", "type": "passenger"}, {"id": "seat_4", "type": "passenger"}, {"id": "aisle", "type": "aisle"}, {"id": "seat_5", "type": "passenger"}]}
+    ]
+  }
+}
