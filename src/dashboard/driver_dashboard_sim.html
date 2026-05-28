@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TaxiFare™ Driver Dashboard Simulator</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 2px solid #333; }
+        h2 { color: #f39c12; margin-top: 0; }
+        
+        /* Topographical Quantum Layout styling */
+        .taxi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 30px auto; max-width: 320px; }
+        .seat { padding: 15px 5px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; background-color: #444; border: 2px solid #555; transition: all 0.3s ease; }
+        .driver { background-color: #2980b9; border-color: #3498db; }
+        .aisle { background-color: transparent; border: none; visibility: hidden; }
+        .unpaid { background-color: #c0392b; border-color: #e74c3c; cursor: pointer; }
+        .paid { background-color: #27ae60; border-color: #2ecc71; box-shadow: 0 0 12px #2ecc71; transform: scale(1.05); }
+
+        .status-bar { padding: 10px; margin-top: 20px; background: #2c3e50; border-radius: 6px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>TaxiFare™ Dashboard Stream</h2>
+    <p>Vehicle ID: <strong id="taxi-id">bree-quantum-xyz-789</strong></p>
+    
+    <div class="status-bar" id="ws-status">Connecting to streaming engine...</div>
+
+    <div class="taxi-grid">
+        <div class="seat driver">Driver</div>
+        <div class="seat aisle"></div>
+        <div class="seat aisle"></div>
+        <div class="seat unpaid" id="seat-1">S1</div>
+
+        <div class="seat unpaid" id="seat-2">S2</div>
+        <div class="seat unpaid" id="seat-3">S3</div>
+        <div class="seat unpaid" id="seat-4">S4</div>
+        <div class="seat aisle"></div>
+
+        <div class="seat aisle"></div>
+        <div class="seat unpaid" id="seat-5">S5</div>
+        <div class="seat unpaid" id="seat-6">S6</div>
+        <div class="seat aisle"></div>
+
+        <div class="seat unpaid" id="seat-7">S7</div>
+        <div class="seat unpaid" id="seat-8">S8</div>
+        <div class="seat unpaid" id="seat-9">S9</div>
+        <div class="seat aisle"></div>
+
+        <div class="seat unpaid" id="seat-10">S10</div>
+        <div class="seat unpaid" id="seat-11">S11</div>
+        <div class="seat unpaid" id="seat-12">S12</div>
+        <div class="seat unpaid" id="seat-13">S13</div>
+    </div>
+    
+    <p style="font-size: 12px; color: #888;">Simulated Toyota Quantum 16-Seater Config Arrangement</p>
+</div>
+
+<script>
+    const vehicleId = "bree-quantum-xyz-789";
+    const statusDiv = document.getElementById("ws-status");
+
+    // Connect to the WebSocket connection manager backend we wrote
+    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/${vehicleId}`);
+
+    ws.onopen = () => {
+        statusDiv.style.backgroundColor = "#27ae60";
+        statusDiv.innerText = "● LIVE: Streaming seat layout modifications";
+    };
+
+    ws.onclose = () => {
+        statusDiv.style.backgroundColor = "#c0392b";
+        statusDiv.innerText = "✕ DISCONNECTED: Streaming pipe down";
+    };
+
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        console.log("Incoming real-time event signal:", msg);
+        
+        if (msg.event === "SEAT_UPDATE") {
+            const seatElement = document.getElementById(`seat-${msg.seat_number}`);
+            if (seatElement && msg.status === "PAID") {
+                seatElement.classList.remove("unpaid");
+                seatElement.classList.add("paid");
+            }
+        }
+    };
+</script>
+</body>
+</html>
