@@ -9,7 +9,7 @@ app = FastAPI(title="TaxiFare API")
 
 # ---- IN-MEMORY CACHES (Replace with Redis in Production) ----
 PROCESSED_TRANSACTIONS = set()  # For idempotency and duplicate prevention
-RATE_LIMI_TRACKER = {}  # For rate limiting (commuter_id: [timestamps])
+RATE_LIMIT_TRACKER = {}  # For rate limiting (commuter_id: [timestamps])
 
 
 # Models for the 'Commuter Profile' and 'Transaction
@@ -28,7 +28,7 @@ class TransactionResponse(BaseModel):
 # 1. The Webhook Payload Model (Standard for MTN MoMo/Electrum style)
 class WebhookData(BaseModel):
     transaction_id: str
-    external_reference: str # This would be the Seat ID or Commuter ID
+    external_reference: str # Seat ID or Commuter ID
     status: str             # SUCCESS, FAILED, or PENDING
     amount: float
     provider: str           # e.g. 'MTN_MOMO' or 'VODAPAY'
@@ -44,19 +44,20 @@ def verify_signature(payload: bytes, signature: str):
     if not hmac.compare_digest(expected_sig, signature):
         raise HTTPException(status_code = 401, detail = "Invalid signature authentication")
 
-def is_rate_limited(commuter_id: str, limit: int = 5, window
-; int = 60) -> bool:
+def is_rate_limited(commuter_id: str, limit: int = 5, window: int = 60) -> bool:
     """Limits a commuter to 5 payments requests per 60 seconds."""
     current_time = time.time()
+
     if commuter_id not in RATE_LIMIT_TRACKER:
         RATE_LIMIT_TRACKER[commuter_id] = []
 
     # Filter out timestamps older than our window
-    RATE_LIMIT_TRACKER[commuter_id] = [t for t in RATE_LIMI_TRACKER[commuter_id] if current_time - t < window]
+    RATE_LIMIT_TRACKER[commuter_id] = [t for t in RATE_LIMIT_TRACKER[commuter_id] if current_time - t < window]
+    
     if len(RATE_LIMIT_TRACKER[commuter_id]) >= limit:
         return True  # Rate limit exceeded
     
-    RATE_LIMI_TRACKER[commuter_id].append(current_time)
+    RATE_LIMIT_TRACKER[commuter_id].append(current_time)
     return False
 
 # Core API functions (Placeholders for real logic)
@@ -72,6 +73,7 @@ async def process_fare(payment: PaymentRequest):
     # 1. Rate Limiting Protection
     if is_rate_limited(payment.commuter_id):
         raise HTTPException(status_code = 429, detail = "Too many payment attempts. Please try again later.")
+    
     # 2. Validity and Authentication 
     if not payment.auth_pin:
         raise HTTPException(status_code = 401, detail = "Two-factor authentication failed")
