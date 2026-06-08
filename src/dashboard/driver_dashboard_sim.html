@@ -4,85 +4,154 @@
     <meta charset="UTF-8">
     <title>TaxiFare™ Driver Dashboard Simulator</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 2px solid #333; }
-        h2 { color: #f39c12; margin-top: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center;}
+        .dashboard-frame { background: #222; border: 4px solid #444; border-radius: 20px; padding: 20px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); max-width: 450px; width: 100%; }
+        h2 { margin: 0 0 5px 0; color:#f1c40f; font-size: 20px; }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 20px; background: #c0392b; }
         
-        /* Topographical Quantum Layout styling */
-        .taxi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 30px auto; max-width: 320px; }
-        .seat { padding: 15px 5px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; background-color: #444; border: 2px solid #555; transition: all 0.3s ease; }
-        .driver { background-color: #2980b9; border-color: #3498db; }
-        .aisle { background-color: transparent; border: none; visibility: hidden; }
-        .unpaid { background-color: #c0392b; border-color: #e74c3c; cursor: pointer; }
-        .paid { background-color: #27ae60; border-color: #2ecc71; box-shadow: 0 0 12px #2ecc71; transform: scale(1.05); }
+        /* The Minibus shell shell */
+        .quantum-hull {
+            background: #2d3436;
+            border: 3px solid #636e72;
+            border-radius: 40px 40px 15px 15px; /* Mimicking the rounded front and rear of the Toyota Quantum */
+            padding: 35px 20px 20px 20px;
+            margin: 0 auto;
+            max-width: 280px;
+            position: relative;
+        }
 
-        .status-bar { padding: 10px; margin-top: 20px; background: #2c3e50; border-radius: 6px; font-size: 14px; }
+        /* Windshield line indicator */
+        .quantum-hull::before {
+            content: '';
+            position: absolute;
+            top: 75px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #636e72;
+        }
+
+        /* Topographical Row Configuration */
+        .cabin-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        .row-rear { 
+            justify-content: space-between; 
+            gap: 6px; /* Tight fit back row */
+        }
+
+        /* Premium Seat Items */
+        .seat {
+            background: #4b5563;
+            border: 2px solid #374151;
+            border-radius: 6px;
+            height: 42px;
+            width: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #9ca3af;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .driver-seat {
+            background: #0284c7;
+            border-color: #0369a1;
+            color: #fff;
+            border-radius: 8px;
+        }
+        .space-aisle {
+            width: 42px;
+            height: 42px;
+            visibility: hidden;
+        }
+
+        /* Payment State Modifiers */
+        .unpaid { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); color: #f87171; }
+        .paid {
+            background:#10b981 !important;
+            border-color: #34d399 !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+            transform: scale(1.08);
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>TaxiFare™ Dashboard Stream</h2>
-    <p>Vehicle ID: <strong id="taxi-id">bree-quantum-xyz-789</strong></p>
-    
-    <div class="status-bar" id="ws-status">Connecting to streaming engine...</div>
+<div class="dashboard-frame">
+    <h2>Toyota Quantum 16-Seater</h2>
+    <p style="margin: 0 0 15px 0; color: #888; font-size: 13px;">Registration Status: <span style="color: #fff">CA 882-194</span></p>
+    <div class="status-badge" id="status-light">OFFLINE</div>
 
-    <div class="taxi-grid">
-        <div class="seat driver">Driver</div>
-        <div class="seat aisle"></div>
-        <div class="seat aisle"></div>
-        <div class="seat unpaid" id="seat-1">S1</div>
+    <div class="quantum-hull">
 
-        <div class="seat unpaid" id="seat-2">S2</div>
-        <div class="seat unpaid" id="seat-3">S3</div>
-        <div class="seat unpaid" id="seat-4">S4</div>
-        <div class="seat aisle"></div>
+        <div class="cabin-row">
+            <div class="seat driver-seat">Driver</div>
+            <div class="space-aisle"></div>
+            <div class="space-aisle"></div>
+            <div class="seat unpaid" id="seat-1">S1</div>
+        </div>
 
-        <div class="seat aisle"></div>
-        <div class="seat unpaid" id="seat-5">S5</div>
-        <div class="seat unpaid" id="seat-6">S6</div>
-        <div class="seat aisle"></div>
+        <div class="cabin-row">
+            <div class="seat unpaid" id="seat-2">S2</div>
+            <div class="seat unpaid" id="seat-3">S3</div>
+            <div class="space-aisle"></div>
+            <div class="seat unpaid" id="seat-4">S4</div>
+        </div>
 
-        <div class="seat unpaid" id="seat-7">S7</div>
-        <div class="seat unpaid" id="seat-8">S8</div>
-        <div class="seat unpaid" id="seat-9">S9</div>
-        <div class="seat aisle"></div>
+        <div class="cabin-row">
+            <div class="space-aisle"></div>
+            <div class="seat unpaid" id="seat-5">S5</div>
+            <div class="seat unpaid" id="seat-6">S6</div>
+            <div class="space-aisle"></div>
+        </div>
 
-        <div class="seat unpaid" id="seat-10">S10</div>
-        <div class="seat unpaid" id="seat-11">S11</div>
-        <div class="seat unpaid" id="seat-12">S12</div>
-        <div class="seat unpaid" id="seat-13">S13</div>
+        <div class="cabin-row">
+            <div class="seat unpaid" id="seat-7">S7</div>
+            <div class="seat unpaid" id="seat-8">S8</div>
+            <div class="space-aisle"></div>
+            <div class="seat unpaid" id="seat-9">S9</div>
+        </div>
+
+        <div class="cabin-row row-rear">
+            <div class="seat unpaid" id="seat-10">S10</div>
+            <div class="seat unpaid" id="seat-11">S11</div>
+            <div class="seat unpaid" id="seat-12">S12</div>
+            <div class="seat unpaid" id="seat-13">S13</div>
+        </div>
+
     </div>
-    
-    <p style="font-size: 12px; color: #888;">Simulated Toyota Quantum 16-Seater Config Arrangement</p>
 </div>
-
+       
 <script>
-    const vehicleId = "bree-quantum-xyz-789";
-    const statusDiv = document.getElementById("ws-status");
-
+    const statusLight = document.getElementById("status-light");
     // Connect to the WebSocket connection manager backend we wrote
-    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/${vehicleId}`);
+    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/bree-quantum-xyz-789`); /* Replace with actual vehicle ID if needed */
 
     ws.onopen = () => {
-        statusDiv.style.backgroundColor = "#27ae60";
-        statusDiv.innerText = "● LIVE: Streaming seat layout modifications";
+        statusLight.style.background = "#10b981";
+        statusLight.innerText = "● LIVE STREAM ACTIVE";
     };
 
     ws.onclose = () => {
-        statusDiv.style.backgroundColor = "#c0392b";
-        statusDiv.innerText = "✕ DISCONNECTED: Streaming pipe down";
+        statusLight.style.background = "#ef4444";
+        statusLight.innerText = "✕ STREAM DISCONNECTED: Streaming pipe down";
     };
 
     ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        console.log("Incoming real-time event signal:", msg);
+        const payload = JSON.parse(event.data);
+        /*console.log("Incoming real-time event signal:", payload); */
         
-        if (msg.event === "SEAT_UPDATE") {
-            const seatElement = document.getElementById(`seat-${msg.seat_number}`);
-            if (seatElement && msg.status === "PAID") {
-                seatElement.classList.remove("unpaid");
-                seatElement.classList.add("paid");
+        if (payload.event === "SEAT_UPDATE" && payload.seat_number && payload.status === "PAID") {
+            const targetSeat = document.getElementById(`seat-${payload.seat_number}`);
+            if (targetSeat) {
+                targetSeat.classList.remove("unpaid");
+                targetSeat.classList.add("paid");
             }
         }
     };
