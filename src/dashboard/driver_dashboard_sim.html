@@ -2,152 +2,153 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TaxiFare™ Driver Dashboard Simulator</title>
+    <title>TaxiFare™ True Blueprint View</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center;}
-        .dashboard-frame { background: #222; border: 4px solid #444; border-radius: 20px; padding: 20px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); max-width: 450px; width: 100%; }
-        h2 { margin: 0 0 5px 0; color:#f1c40f; font-size: 20px; }
-        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 20px; background: #c0392b; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #111416; color: #fff; padding: 30px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-frame { background: #1c2124; border: 2px solid #2d3748; border-radius: 16px; padding: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 900px; width: 100%; }
+        h2 { margin: 0 0 5px 0; color: #f39c12; font-size: 22px; }
+        .status-badge { display: inline-block; padding: 6px 14px; border-radius: 30px; font-size: 11px; font-weight: bold; margin-bottom: 25px; background: #e53e3e; letter-spacing: 0.5px; }
         
-        /* The Minibus shell shell */
-        .quantum-hull {
-            background: #2d3436;
-            border: 3px solid #636e72;
-            border-radius: 40px 40px 15px 15px; /* Mimicking the rounded front and rear of the Toyota Quantum */
-            padding: 35px 20px 20px 20px;
-            margin: 0 auto;
-            max-width: 280px;
+        /* Horizontal Vehicle Frame matching your uploaded blueprints */
+        .vehicle-hull {
+            background: #242b30;
+            border: 3px solid #4a5568;
+            border-radius: 24px 80px 80px 24px; /* Curved left side (front bumper nose) */
+            padding: 20px 40px 20px 30px;
+            margin: 20px auto;
+            max-width: 780px;
+            height: 320px;
+            display: flex;
             position: relative;
+            box-sizing: border-box;
         }
 
-        /* Windshield line indicator */
-        .quantum-hull::before {
-            content: '';
+        /* Front Dashboard Cabin separator line visible in blueprint */
+        .cabin-separator {
             position: absolute;
-            top: 75px;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #636e72;
+            left: 190px; top: 0; bottom: 0; width: 2px;
+            background: rgba(74, 85, 104, 0.4);
         }
 
-        /* Topographical Row Configuration */
-        .cabin-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-        .row-rear { 
-            justify-content: space-between; 
-            gap: 6px; /* Tight fit back row */
-        }
+        /* Floorplan Sections */
+        .cockpit-section { width: 160px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+        .passenger-cabin { flex-grow: 1; display: grid; grid-template-rows: repeat(3, 1fr); gap: 15px; height: 100%; padding-left: 40px; }
 
-        /* Premium Seat Items */
+        /* Blueprint Seat Assemblies */
+        .seat-block { display: flex; gap: 4px; }
         .seat {
-            background: #4b5563;
-            border: 2px solid #374151;
-            border-radius: 6px;
-            height: 42px;
-            width: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-            color: #9ca3af;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #3a444c;
+            border: 2px solid #4e5d6c;
+            border-radius: 8px 14px 14px 8px; /* Shorter left side, extended right curve to mimic real seat profile cushions */
+            height: 64px; width: 54px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold; color: #a0aec0;
+            transition: all 0.25s ease;
+            position: relative;
+            box-sizing: border-box;
         }
-        .driver-seat {
-            background: #0284c7;
-            border-color: #0369a1;
-            color: #fff;
-            border-radius: 8px;
-        }
-        .space-aisle {
-            width: 42px;
-            height: 42px;
-            visibility: hidden;
+        
+        /* Simulated Headrest Cushion accent */
+        .seat::after {
+            content: ''; position: absolute; left: 4px; top: 12px; bottom: 12px; width: 6px; background: rgba(255,255,255,0.1); border-radius: 2px;
         }
 
-        /* Payment State Modifiers */
-        .unpaid { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); color: #f87171; }
-        .paid {
-            background:#10b981 !important;
-            border-color: #34d399 !important;
+        /* Specific seat orientations */
+        .driver-seat { background: #2b6cb0; border-color: #3182ce; color: #fff; }
+        .driver-seat::after { background: #63b3ed; }
+        
+        /* Aisle definition items to structure columns cleanly */
+        .aisle-space { grid-column: span 1; visibility: hidden; }
+
+        /* Real-Time Payment State Classes */
+        .unpaid { border-color: #e53e3e; background: rgba(229, 62, 62, 0.15); color: #fc8181; }
+        .paid { 
+            background: #38a169 !important; 
+            border-color: #48bb78 !important; 
             color: #fff !important;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
-            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
+            transform: translateY(-2px);
         }
+
+        /* Structural row wrappers inside cabin grid */
+        .top-deck-row { display: flex; gap: 20px; grid-row: 1; justify-content: flex-start; }
+        .mid-deck-row { display: flex; gap: 20px; grid-row: 2; justify-content: flex-end; padding-right: 78px; }
+        .bottom-deck-row { display: flex; gap: 20px; grid-row: 3; justify-content: flex-end; }
+        .rear-bench-column { position: absolute; right: 30px; top: 20px; bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
     </style>
 </head>
 <body>
 
 <div class="dashboard-frame">
-    <h2>Toyota Quantum 16-Seater</h2>
-    <p style="margin: 0 0 15px 0; color: #888; font-size: 13px;">Registration Status: <span style="color: #fff">CA 882-194</span></p>
-    <div class="status-badge" id="status-light">OFFLINE</div>
+    <h2>Toyota Quantum 16-Seater Telematics</h2>
+    <p style="margin: 0 0 15px 0; color: #a0aec0; font-size: 13px;">Live Floorplan Stream: <span style="color:#fff">Bree Rank Fleet #4</span></p>
+    <div class="status-badge" id="status-light">CONNECTING...</div>
 
-    <div class="quantum-hull">
-
-        <div class="cabin-row">
-            <div class="seat driver-seat">Driver</div>
-            <div class="space-aisle"></div>
-            <div class="space-aisle"></div>
+    <div class="vehicle-hull">
+        <div class="cabin-separator"></div>
+        
+        <div class="cockpit-section">
+            <div class="seat driver-seat">DRV</div>
             <div class="seat unpaid" id="seat-1">S1</div>
         </div>
 
-        <div class="cabin-row">
-            <div class="seat unpaid" id="seat-2">S2</div>
-            <div class="seat unpaid" id="seat-3">S3</div>
-            <div class="space-aisle"></div>
-            <div class="seat unpaid" id="seat-4">S4</div>
+        <div class="passenger-cabin">
+            
+            <div class="top-deck-row">
+                <div class="seat-block">
+                    <div class="seat unpaid" id="seat-2">S2</div>
+                    <div class="seat unpaid" id="seat-3">S3</div>
+                </div>
+                <div class="seat-block">
+                    <div class="seat unpaid" id="seat-6">S6</div>
+                    <div class="seat unpaid" id="seat-7">S7</div>
+                </div>
+                <div class="seat-block">
+                    <div class="seat unpaid" id="seat-10">S10</div>
+                    <div class="seat unpaid" id="seat-11">S11</div>
+                </div>
+            </div>
+
+            <div class="mid-deck-row">
+                <div class="seat unpaid" id="seat-8">S8</div>
+                <div class="seat unpaid" id="seat-12">S12</div>
+            </div>
+
+            <div class="bottom-deck-row">
+                <div class="seat unpaid" id="seat-4">S4</div>
+                <div class="seat unpaid" id="seat-5">S5</div>
+                <div class="seat unpaid" id="seat-9">S9</div>
+            </div>
+
         </div>
 
-        <div class="cabin-row">
-            <div class="space-aisle"></div>
-            <div class="seat unpaid" id="seat-5">S5</div>
-            <div class="seat unpaid" id="seat-6">S6</div>
-            <div class="space-aisle"></div>
-        </div>
-
-        <div class="cabin-row">
-            <div class="seat unpaid" id="seat-7">S7</div>
-            <div class="seat unpaid" id="seat-8">S8</div>
-            <div class="space-aisle"></div>
-            <div class="seat unpaid" id="seat-9">S9</div>
-        </div>
-
-        <div class="cabin-row row-rear">
-            <div class="seat unpaid" id="seat-10">S10</div>
-            <div class="seat unpaid" id="seat-11">S11</div>
-            <div class="seat unpaid" id="seat-12">S12</div>
+        <div class="rear-bench-column">
             <div class="seat unpaid" id="seat-13">S13</div>
+            <div class="seat unpaid" id="seat-14">S14</div>
+            <div class="seat unpaid" id="seat-15">S15</div>
+            <div class="seat unpaid" id="seat-16">S16</div>
         </div>
 
     </div>
 </div>
-       
+
 <script>
     const statusLight = document.getElementById("status-light");
-    // Connect to the WebSocket connection manager backend we wrote
-    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/bree-quantum-xyz-789`); /* Replace with actual vehicle ID if needed */
+    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/bree-quantum-xyz-789`);
 
     ws.onopen = () => {
-        statusLight.style.background = "#10b981";
-        statusLight.innerText = "● LIVE STREAM ACTIVE";
+        statusLight.style.background = "#38a169";
+        statusLight.innerText = "BLUEPRINT ENGINE STREAMING ACTIVE";
     };
 
     ws.onclose = () => {
-        statusLight.style.background = "#ef4444";
-        statusLight.innerText = "✕ STREAM DISCONNECTED: Streaming pipe down";
+        statusLight.style.background = "#e53e3e";
+        statusLight.innerText = "STREAM OFFLINE";
     };
 
     ws.onmessage = (event) => {
         const payload = JSON.parse(event.data);
-        /*console.log("Incoming real-time event signal:", payload); */
-        
-        if (payload.event === "SEAT_UPDATE" && payload.seat_number && payload.status === "PAID") {
+        if (payload.event === "SEAT_UPDATE" && payload.status === "PAID") {
             const targetSeat = document.getElementById(`seat-${payload.seat_number}`);
             if (targetSeat) {
                 targetSeat.classList.remove("unpaid");
