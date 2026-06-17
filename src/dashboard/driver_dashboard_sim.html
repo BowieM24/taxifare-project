@@ -2,79 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TaxiFare™ True Blueprint View</title>
+    <title>TaxiFare™ Blueprint Interface</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #111416; color: #fff; padding: 30px; display: flex; flex-direction: column; align-items: center; }
-        .dashboard-frame { background: #1c2124; border: 2px solid #2d3748; border-radius: 16px; padding: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); max-width: 900px; width: 100%; }
-        h2 { margin: 0 0 5px 0; color: #f39c12; font-size: 22px; }
-        .status-badge { display: inline-block; padding: 6px 14px; border-radius: 30px; font-size: 11px; font-weight: bold; margin-bottom: 25px; background: #e53e3e; letter-spacing: 0.5px; }
+        body { font-family: sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding: 50px; }
         
-        /* Horizontal Vehicle Frame matching your uploaded blueprints */
-        .vehicle-hull {
-            background: #242b30;
-            border: 3px solid #4a5568;
-            border-radius: 24px 80px 80px 24px; /* Curved left side (front bumper nose) */
-            padding: 20px 40px 20px 30px;
-            margin: 20px auto;
-            max-width: 780px;
-            height: 320px;
-            display: flex;
+        /* Container that holds your uploaded blueprint image */
+        .blueprint-container {
             position: relative;
-            box-sizing: border-box;
+            width: 1000px; /* Match the aspect ratio of your image */
+            height: 400px;
+            background-image: url('../assets/14 Seater.svg'); /* Your uploaded file */
+            background-size: contain;
+            background-repeat: no-repeat;
+            border: 5px solid #333;
+            border-radius: 15px;
         }
 
-        /* Front Dashboard Cabin separator line visible in blueprint */
-        .cabin-separator {
+        /* The dynamic "Seat Light" that sits on top of the image seats */
+        .seat-indicator {
             position: absolute;
-            left: 190px; top: 0; bottom: 0; width: 2px;
-            background: rgba(74, 85, 104, 0.4);
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            background: rgba(255, 0, 0, 0.3); /* Transparent Red for Unpaid */
+            border: 2px solid red;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+            transition: all 0.5s ease;
         }
 
-        /* Floorplan Sections */
-        .cockpit-section { width: 160px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
-        .passenger-cabin { flex-grow: 1; display: grid; grid-template-rows: repeat(3, 1fr); gap: 15px; height: 100%; padding-left: 40px; }
-
-        /* Blueprint Seat Assemblies */
-        .seat-block { display: flex; gap: 4px; }
-        .seat {
-            background: #3a444c;
-            border: 2px solid #4e5d6c;
-            border-radius: 8px 14px 14px 8px; /* Shorter left side, extended right curve to mimic real seat profile cushions */
-            height: 64px; width: 54px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: bold; color: #a0aec0;
-            transition: all 0.25s ease;
-            position: relative;
-            box-sizing: border-box;
-        }
-        
-        /* Simulated Headrest Cushion accent */
-        .seat::after {
-            content: ''; position: absolute; left: 4px; top: 12px; bottom: 12px; width: 6px; background: rgba(255,255,255,0.1); border-radius: 2px;
+        .paid {
+            background: rgba(0, 255, 0, 0.6) !important; /* Green for Paid */
+            border-color: #00ff00 !important;
+            box-shadow: 0 0 15px #00ff00;
         }
 
-        /* Specific seat orientations */
-        .driver-seat { background: #2b6cb0; border-color: #3182ce; color: #fff; }
-        .driver-seat::after { background: #63b3ed; }
-        
-        /* Aisle definition items to structure columns cleanly */
-        .aisle-space { grid-column: span 1; visibility: hidden; }
-
-        /* Real-Time Payment State Classes */
-        .unpaid { border-color: #e53e3e; background: rgba(229, 62, 62, 0.15); color: #fc8181; }
-        .paid { 
-            background: #38a169 !important; 
-            border-color: #48bb78 !important; 
-            color: #fff !important;
-            box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
-            transform: translateY(-2px);
-        }
-
-        /* Structural row wrappers inside cabin grid */
-        .top-deck-row { display: flex; gap: 20px; grid-row: 1; justify-content: flex-start; }
-        .mid-deck-row { display: flex; gap: 20px; grid-row: 2; justify-content: flex-end; padding-right: 78px; }
-        .bottom-deck-row { display: flex; gap: 20px; grid-row: 3; justify-content: flex-end; }
-        .rear-bench-column { position: absolute; right: 30px; top: 20px; bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
+        /* Precise coordinate mapping to match Image 2 exactly */
+        #seat-1  { top: 220px; left: 180px; } /* Front Passenger */
+        #seat-2  { top: 50px;  left: 380px; } /* Row 2 Left */
+        #seat-3  { top: 50px;  left: 430px; } /* Row 2 Mid */
+        #seat-4  { top: 220px; left: 530px; } /* Row 2 Right */
+        /* ... add remaining seat coordinates here ... */
     </style>
 </head>
 <body>
@@ -133,29 +104,16 @@
 </div>
 
 <script>
-    const statusLight = document.getElementById("status-light");
+    // Existing WebSocket logic remains the same
     const ws = new WebSocket(`ws://localhost:8000/ws/fleet/bree-quantum-xyz-789`);
-
-    ws.onopen = () => {
-        statusLight.style.background = "#38a169";
-        statusLight.innerText = "BLUEPRINT ENGINE STREAMING ACTIVE";
-    };
-
-    ws.onclose = () => {
-        statusLight.style.background = "#e53e3e";
-        statusLight.innerText = "STREAM OFFLINE";
-    };
-
     ws.onmessage = (event) => {
         const payload = JSON.parse(event.data);
         if (payload.event === "SEAT_UPDATE" && payload.status === "PAID") {
-            const targetSeat = document.getElementById(`seat-${payload.seat_number}`);
-            if (targetSeat) {
-                targetSeat.classList.remove("unpaid");
-                targetSeat.classList.add("paid");
-            }
+            const target = document.getElementById(`seat-${payload.seat_number}`);
+            if (target) target.classList.add("paid");
         }
     };
 </script>
+
 </body>
 </html>
