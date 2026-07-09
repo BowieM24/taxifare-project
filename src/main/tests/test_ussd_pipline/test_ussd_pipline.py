@@ -45,7 +45,7 @@ def run__full_session_simulation():
     print(f"Network Response:\n{replay}")
 
     # Step 4: User inputs '1' to select MTN MoMo or Vodacom VodaPay as their gateway path
-    print("\n[Step 4] Comuuter enters '1' (Confirm via MTN MoMo or Vodacom VodaPay)")
+    print("\n[Step 4] Commuter enters '1' (Confirm via MTN MoMo or Vodacom VodaPay)")
     current_input = "1*4*1"
     replay = simulate_ussd_step(session_id, commuter_phone, current_input)
     print(f"Network Response:\n{replay}")
