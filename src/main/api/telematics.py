@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter  # type: ignore[import]
+from pydantic import BaseModel  # type: ignore[import]
 
-import numpy as np
+import numpy as np  # type: ignore[import]
 
 from typing import Dict, List
-from src.main.sockets.connection_manager import manager
+from ..sockets.connection_manager import manager
 
 # Create an isolated telemetry module router
 router = APIRouter(prefix="/telematics", tags=["telematics"])
