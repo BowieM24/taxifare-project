@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Form, Response, WebSocket, WebSocketDisconnect  # type: ignore[import]
+from fastapi import APIRouter, Form, Response  # type: ignore[import]
 
 # Import connection manager workspace instance
-from main.sockets.connection_manager import manager
+from ..sockets.connection_manager import manager
 
-app = FastAPI(title="TaxiFare™ USSD Engine")
+# Changed from FastAPI() to APIRouter() to allow for modular routing and mounting in the main application
+router = APIRouter(tags=["TaxiFare™ USSD Engine"])
 
 
 def lookup_vehicle(session_id: str) -> str:
@@ -14,28 +15,10 @@ def lookup_vehicle(session_id: str) -> str:
     """
     return "bree-quantum-xyz-789"
 
-# ------- CORE HEALTH CHECKS ---------
-@app.get("/ping")
-async def ping():
-    return {"status": "alive"}
 
-# -------- REAL-TIME WEBSOCKET CONNECTIONS ---------
-@app.websocket("/ws/fleet/{vehicle_id}")
-async def websocket_endpoint(
-    websocket: WebSocket, 
-    vehicle_id: str
-):
-    await manager.connect(vehicle_id, websocket)
-
-    try:
-        while True:
-            # Presistent loop keeping pipe open to recieve client beartbeats (Keep socket alive)
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(vehicle_id, websocket)
 
 # ---- INCLUSIVITY FALLBACK CAPABILITY (PASSENGER INTERFACE) ----
-@app.post("/ussd")
+@router.post("/ussd")
 async def ussd_handler(
     sessionId: str = Form(...),
     serviceCode: str = Form(...),
