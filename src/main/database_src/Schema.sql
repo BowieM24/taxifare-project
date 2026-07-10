@@ -47,6 +47,13 @@ CREATE TABLE seats (
     vehicle_id UUID REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
     seat_number INT NOT NULL, -- e.g., 1, 2, 3...
     is_paid BOOLEAN DEFAULT FALSE, -- Flips to TRUE when Electrum webhook returns SUCCESS
+
+    -- NEW TELEMETRY INTEGRATION TRACKING FIELDS --
+    last_variance DECIMAL(10, 4) DEFAULT 0.0000,
+    last_magnitude DECIMAL(10, 4) DEFAULT 9.8100,
+    occupancy_status VARCHAR(20) DEFAULT 'VACANT', -- 'VACANT', 'OCCUPIED', 'DISEMBARKED'
+    ------------------------------------------------
+    
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(vehicle_id, seat_number) -- Prevents assigning two Seat 4s inside the same taxi
 );
