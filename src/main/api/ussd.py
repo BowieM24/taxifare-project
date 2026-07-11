@@ -23,7 +23,7 @@ async def ussd_handler(
     sessionId: str = Form(...),
     serviceCode: str = Form(...),
     phoneNumber: str = Form(...),
-    text: str = Form(...)   # Contains user inputs separated by '*' e.g. "1*4"
+    text: str = Form("")   # Changed From(...) to Form("") to accept the initial dial empty string
 ):
     # Split the input text to determine menu depth
     text_segments = text.split("*") if text else []
