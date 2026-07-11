@@ -1,4 +1,4 @@
-from fastapi import WebSocket
+from fastapi import WebSocket  # type: ignore[import]
 from typing import Dict, List
 
 
