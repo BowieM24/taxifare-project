@@ -1,115 +1,91 @@
-# TaxiFare
+# TaxiFare Project
 
-**Digital Payment Solution for Minibus Taxi Transport**
+TaxiFare is a digital payment and fleet-management prototype for minibus taxi operations in South Africa. The current implementation focuses on a FastAPI backend that demonstrates QR-driven seat payment, USSD-based passenger interaction, and live seat updates through WebSockets for a driver dashboard simulation.
 
-TaxiFare is a comprehensive digital payment and management system designed to modernize minibus taxi operations across South Africa. By replacing cash-based fare collection with secure QR code and USSD payments, TaxiFare eliminates theft risks, improves operational efficiency, and provides real-time transaction data for better planning and growth.
+## What changed from the original plan
 
-## Documentation
+The original concept envisioned a broader product stack with a separate mobile app, a richer payment gateway, and a more formal database-backed backend. The current repository reflects a more focused prototype phase:
 
-- **[Flow Diagram](./TaxiFare_flow_diagram_.pdf)** - System architecture and process flow
-- **[Presentation](./TaxiFare_BeOrchid_Presentation.pptx)** - Project overview and key features
-- **[Development Roadmap](./Developement_roadmap.docx)** - Project timeline and milestones
+- The backend is implemented with FastAPI instead of a full Node.js or mobile-first stack.
+- USSD payment flow and seat status updates are already wired to a simulated driver dashboard.
+- QR code generation is local and file-based for fleet asset setup rather than fully integrated with a production database.
+- Payment handling and notification behaviour are currently mocked or placeholder-based.
+- The dashboard is a lightweight HTML simulation rather than a production web application.
 
-## Features
+## Current project structure
 
-- **QR Code Payment System** - Every seat in the minibus has a designated QR code for seamless fare collection
-- **USSD Integration** - Commuters are directed to their banking app to approve transactions with a temporary PIN
-- **Real-time Seat Status** - Driver dashboard displays seat availability in real-time (green for available)
-- **Digital Transaction Receipts** - SMS receipts sent to commuters for every transaction
-- **Commuter Profiles** - Track commuter history and transaction data
-- **Revenue Analytics** - Comprehensive trip and revenue data for planning and growth
-
-## System Architecture
-
-TaxiFare consists of three main components:
-
-1. **Mobile App** - Commuter-facing application for QR scanning and payment approval
-2. **Backend** - Core system handling payment processing, data management, and real-time updates
-3. **Driver/Merchant Dashboard** - Driver interface for seat management and trip monitoring
-
-## Tech Stack
-
-| Layer | Technology | Rationale |
-|-------|-----------|----------|
-| **Frontend (Mobile)** | React Native or Flutter | Cross-platform (iOS/Android) with excellent QR scanning and USSD libraries |
-| **Backend** | Node.js (Express) or Python (FastAPI) | High performance for processing TaxiFare transactions |
-| **Database** | PostgreSQL | Relational database for commuter profiles and transaction receipts |
-| **Real-time Updates** | Socket.io or Firebase | Instant seat status updates on driver dashboard |
-| **Payments/SMS** | Stitch/Ozow & Twilio | South African bank-to-bank (EFT) payments and SMS receipts |
-
-## Use Cases & Problem Statement
-
-**Market Context:**
-- Over 15 million commuters daily rely on minibus transport (vital to national transport infrastructure)
-- Current cash-based system causes delays, theft risks, and data gaps
-- Lack of reliable trip and revenue data hinders planning and growth
-
-**TaxiFare Solution:**
-- Eliminates manual cash handling and associated risks
-- Provides real-time transaction data for better planning
-- Improves operational efficiency and revenue tracking
-- Enhances commuter experience with digital receipts
-
-## Installation
-
-### Prerequisites
-- Node.js 16+ or Python 3.8+
-- PostgreSQL 12+
-- Git
-
-### Backend Setup
-
-```bash
-# Clone the repository
-git clone https://gitlab.com/taxifare/taxifare-project.git
-cd taxifare-project
-
-# Install dependencies
-npm install  # For Node.js
-# or
-pip install -r requirements.txt  # For Python
-
-# Configure environment variables
-cp .env.example .env
-
-# Run database migrations
-npm run migrate  # For Node.js
-# or
-python manage.py migrate  # For Python
-
-# Start the server
-npm start  # For Node.js
-# or
-python app.py  # For Python
+```text
+taxifare-project/
+├── src/
+│   └── main/
+│       ├── app.py
+│       ├── api/
+│       │   ├── ussd.py
+│       │   ├── telematics.py
+│       │   └── notification.py
+│       ├── sockets/
+│       │   └── connection_manager.py
+│       ├── dashboard/
+│       │   └── driver_dashboard_sim.html
+│       ├── services/
+│       │   ├── vehicle_service.py
+│       │   └── payment_service.py
+│       ├── models/
+│       └── utils/
+│           ├── fleet_generator.py
+│           └── qr_generator.py
+├── assets/
+├── README.md
+└── requirements.txt
 ```
 
-### Mobile App Setup
+## Core capabilities
 
-Refer to the mobile app repository for React Native or Flutter setup instructions.
+- USSD payment flow for seat selection and payment method selection
+- WebSocket-based seat status broadcasting to the dashboard simulation
+- Telematics-inspired seat state evaluation for occupancy changes
+- QR fleet asset generation for vehicle seat stickers
+- A simple service layer for future expansion into real payment and vehicle persistence
 
-## Contributing
+## Run locally
 
-We welcome contributions! Please follow these guidelines:
+### Prerequisites
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a merge request
+- Python 3.10+
+- pip
 
-### Code Standards
-- Follow the existing code style
-- Write clear commit messages
-- Add tests for new features
-- Update documentation as needed
+### Setup
+
+```bash
+cd taxifare-project
+python -m venv .venv
+source .venv/bin/activate  # On Windows use .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Start the API
+
+```bash
+uvicorn src.main.app:app --reload
+```
+
+### Useful endpoints
+
+- GET /ping
+- POST /ussd
+- POST /telematics/seat-update
+- GET /ws/fleet/{vehicle_id}
+- POST /fleet/register
+
+## Notes on implementation status
+
+This repository is currently a functional prototype and not yet a production-ready deployment. The next natural steps are:
+
+1. Replace simulated payment and notification flows with real provider integrations.
+2. Introduce a persistent database layer for vehicles, seats, and transactions.
+3. Expand the dashboard into a full real-time operational interface.
+4. Add automated tests around the USSD, telematics, and socket workflows.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For questions or issues, please:
-- Open an issue on GitLab
-- Contact the development team
-- Review the documentation files above
+This project is intended for prototype and demonstration purposes. Update the licensing terms before production use.
