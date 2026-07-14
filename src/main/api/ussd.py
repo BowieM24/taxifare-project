@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Form, Response  # type: ignore[import]
-
+from fastapi import APIRouter, Form, Response, HTTPException  # type: ignore[import]
+from typing import Dict
 # Import connection manager workspace instance
 from ..sockets.connection_manager import manager
 
 # Changed from FastAPI() to APIRouter() to allow for modular routing and mounting in the main application
 router = APIRouter(tags=["TaxiFare™ USSD Engine"])
 
+# Mock database tracking wallet balances by phone number
+# Currency in SOuth African Rand (ZAR)
+MOCK_WALLET_DB: Dict[str, dict] = {
+    "+27831234567": {"name": "Sipho", "balance": 145.50}, 
+    "+27829876543": {"name": "Lerato", "balance": 22.00}
+}
 
 def lookup_vehicle(session_id: str) -> str:
     """
@@ -49,8 +55,14 @@ async def ussd_handler(
             response_text = "CON Enter Seat Number(1-14):"
         
         elif selection == "2":
-            response_text = ("END Your current TaxiFare™ wallet balance is: R75.00")
-        
+            # Dynamic Wallet Balance Engine Lookups
+            user_profile = MOCK_WALLET_DB.get(phoneNumber)
+            if user_profile:
+                name = user_profile["name"]
+                balance = user_profile["balance"]
+                response_text = f"END Hello {name}.\nYour current TaxiFare™ wallet balance is: R{balance:.2f}"
+            else:
+                response_text = ("END Your phone number is not registered. Please sign up via the TaxiFare™ App.")
         elif selection == "3":
             response_text = ("END Ride history is not available yet.")
 
