@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, status  # type: ignore[import]
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status  # type: ignore[import]
 from .utils.fleet_generator import auto_generate_fleet_assets
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 
@@ -19,6 +19,16 @@ app.add_middleware(
 
 app.include_router(telematics_router)
 app.include_router(ussd_router)
+
+
+@app.websocket("/ws/fleet/{vehicle_id}")
+async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
+    await manager.connect(vehicle_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(vehicle_id, websocket)
 
 
 @app.post(
