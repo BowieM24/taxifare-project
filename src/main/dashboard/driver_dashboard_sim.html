@@ -226,7 +226,7 @@
 
     ws.onmessage = (event) => {
         const payload = JSON.parse(event.data);
-        if (payload.event === "SEAT_UPDATE") {
+        if (payload.seat_number) {
             const target = document.getElementById(`seat-${payload.seat_number}`);
             if (target) {
                 if (payload.status === "PAID") {
