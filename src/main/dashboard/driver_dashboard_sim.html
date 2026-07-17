@@ -58,7 +58,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -75,7 +75,8 @@
         .seat-overlay.unpaid:hover {
             background: rgba(239, 68, 68, 0.35);
             border-color: #ef4444;
-            transform: scale(1.08);
+            transform: scale(1.1);
+            z-index: 10;
         }
         .seat-overlay.paid {
             background: rgba(16, 185, 129, 0.4);
@@ -85,7 +86,8 @@
         }
         .seat-overlay.paid:hover {
             background: rgba(16, 185, 129, 0.55);
-            transform: scale(1.08);
+            transform: scale(1.1);
+            z-index: 10;
         }
         .seat-overlay.driver-seat {
             background: rgba(30, 58, 138, 0.45);
@@ -113,9 +115,36 @@
             border-radius: 4px;
             border: 1px solid transparent;
         }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1c2124;
+            border: 1px solid #10b981;
+            border-radius: 10px;
+            padding: 14px 20px;
+            color: #fff;
+            font-size: 13px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            max-width: 300px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast .seat-label {
+            color: #10b981;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
+<div class="toast" id="toast"></div>
 
 <div class="dashboard-frame">
     <h2>Toyota Quantum 14-Seater Telematics</h2>
@@ -126,19 +155,19 @@
         <img src="../../assets/14 Seater.svg" alt="14 Seater Minibus Layout" />
 
         <!-- Driver seat: front-left cab area -->
-        <div class="seat-overlay driver-seat" id="seat-drv" style="left:18.5%; top:11%; width:5.8%; height:13.5%;" >DRV</div>
+        <div class="seat-overlay driver-seat" id="seat-drv" style="left:18.5%; top:11%; width:5.8%; height:13.5%;">DRV</div>
         <div class="seat-overlay unpaid" id="seat-1" style="left:18.5%; top:73.5%; width:5.8%; height:13.5%;" data-seat="1">S1</div>
 
         <!-- Front row -->
         <div class="seat-overlay unpaid" id="seat-2" style="left:38.2%; top:11%; width:5.5%; height:13%;" data-seat="2">S2</div>
         <div class="seat-overlay unpaid" id="seat-3" style="left:44.5%; top:11%; width:5.5%; height:13%;" data-seat="3">S3</div>
         <div class="seat-overlay unpaid" id="seat-4" style="left:38.2%; top:74%; width:5.5%; height:13%;" data-seat="4">S4</div>
-        
+
         <!-- Second row -->
         <div class="seat-overlay unpaid" id="seat-5" style="left:54%; top:25%; width:4.6%; height:11%;" data-seat="5">S5</div>
         <div class="seat-overlay unpaid" id="seat-6" style="left:60%; top:40%; width:4.6%; height:11%;" data-seat="6">S6</div>
-        <div class="seat-overlay unpaid" id="seat-7" style="left:60%; top:42.5%; width: 5.5%; height: 13%;" data-seat="7">S7</div>
-        
+        <div class="seat-overlay unpaid" id="seat-7" style="left:60%; top:42.5%; width:5.5%; height:13%;" data-seat="7">S7</div>
+
         <!-- Third row -->
         <div class="seat-overlay unpaid" id="seat-8" style="left:69.8%; top:10.5%; width:4.5%; height:13%;" data-seat="8">S8</div>
         <div class="seat-overlay unpaid" id="seat-9" style="left:75.8%; top:25.5%; width:4.5%; height:13%;" data-seat="9">S9</div>
@@ -147,7 +176,7 @@
         <!-- Fourth row -->
         <div class="seat-overlay unpaid" id="seat-11" style="left:87.2%; top:11%; width:5.5%; height:13%;" data-seat="11">S11</div>
         <div class="seat-overlay unpaid" id="seat-12" style="left:87.2%; top:31%; width:5.5%; height:13%;" data-seat="12">S12</div>
-        <div class="seat-overlay unpaid" id="seat-13" style="left: 87.2%; top:53%; width:5.5%; height:13%;" data-seat="13">S13</div>
+        <div class="seat-overlay unpaid" id="seat-13" style="left:87.2%; top:53%; width:5.5%; height:13%;" data-seat="13">S13</div>
         <div class="seat-overlay unpaid" id="seat-14" style="left:87.2%; top:74%; width:5.5%; height:13%;" data-seat="14">S14</div>
     </div>
 
@@ -161,6 +190,13 @@
 <script>
     const statusLight = document.getElementById("status-light");
     const seatOverlays = document.querySelectorAll(".seat-overlay:not(.driver-seat)");
+    const toast = document.getElementById("toast");
+
+    function showToast(message) {
+        toast.innerHTML = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+    }
 
     // Manual click override handling for localized testing
     seatOverlays.forEach(seat => {
@@ -175,8 +211,8 @@
         });
     });
 
-    // Connecting downstream logic to connection_manager.py websocket endpoint/framework
-    const ws = new WebSocket(`ws://localhost:8000/ws/fleet/bree-quantum-xyz-789`);
+    // WebSocket connection to server endpoint
+    const ws = new WebSocket("ws://localhost:8000/ws/fleet/bree-quantum-xyz-789");
 
     ws.onopen = () => {
         statusLight.style.background = "#38a169";
@@ -196,6 +232,7 @@
                 if (payload.status === "PAID") {
                     target.classList.remove("unpaid");
                     target.classList.add("paid");
+                    showToast(`<span class="seat-label">Seat ${payload.seat_number}</span> — Payment Confirmed`);
                 } else if (payload.status === "VACANT") {
                     target.classList.remove("paid");
                     target.classList.add("unpaid");
