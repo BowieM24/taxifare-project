@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Form, Response, HTTPException  # type: ignore[import]
-from typing import Dict
+from typing import Dict, List
 # Import connection manager workspace instance
 from ..sockets.connection_manager import manager
 
@@ -11,6 +11,17 @@ router = APIRouter(tags=["TaxiFare™ USSD Engine"])
 MOCK_WALLET_DB: Dict[str, dict] = {
     "+27831234567": {"name": "Sipho", "balance": 145.50}, 
     "+27829876543": {"name": "Lerato", "balance": 22.00}
+}
+
+# Mock database logging passenger transit histories by phone number
+MOCK_RIDE_HISTORY_DB: Dict[str, List[dict]] = {
+    "+27831234567": [
+        {"date": "16/07", "route": "Bree -> Randburg", "fare": "R22.00"}, 
+        {"date": "17/07", "route": "Baragwanath -> Bree", "fare": "R25.00"}
+    ],
+    "+27829876543": [
+        {"date": "15/07", "route": "Bree -> Midrand", "fare": "R36.00"}
+    ]
 }
 
 def lookup_vehicle(session_id: str) -> str:
@@ -64,7 +75,14 @@ async def ussd_handler(
             else:
                 response_text = ("END Your phone number is not registered. Please sign up via the TaxiFare™ App.")
         elif selection == "3":
-            response_text = ("END Ride history is not available yet.")
+            # Dynamic Ride History Engine Lookup
+            rides = MOCK_RIDE_HISTORY_DB.get(phoneNumber)
+            if rides:
+                response_text = "END Your Recent Rides:\n"
+                for i, ride in enumerate(rides, 1):
+                    response_text += f"{i}. {ride['date']} {ride['route']} ({ride['fare']})\n"
+            else:
+                response_text = ("END No recent rides found associated with this mobile profile.")
 
         elif selection == "4":
             response_text = ("END For assistance contact TaxiFare™ Support.")
