@@ -11,3 +11,5 @@ if __name__ == '__main__':
     print('\n[Step 4] Confirm...'); print(simulate_ussd_step(s, ph, '1*4*1'))
     print('\n[Step 5] Checking balance (Registered)...'); print(simulate_ussd_step(s, ph, '2'))
     print('\n[Step 6] Checking balance (Unregistered)...'); print(simulate_ussd_step(s, '+27710000000', '2'))
+    print('\n[Step 7] Viewing Ride History (Registered)...'); print(simulate_ussd_step(s, ph, '3'))
+    print('\n[Step 8] Viewing Ride History (Unregistered)...'); print(simulate_ussd_step(s, '+27710000000', '3'))
