@@ -1,13 +1,25 @@
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status  # type: ignore[import]
 from .utils.fleet_generator import auto_generate_fleet_assets
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
+from sqlalchemy import text
 
+from .db.database import async_engine
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
 from .sockets.connection_manager import manager
 
 
 app = FastAPI(title="TaxiFare™ Telematic API", version="1.0.0")
+
+@app.on_event("startup")
+async def verify_database_connection():
+    """Validates connectivity to the PostgreSQL cluster on application start-up."""
+    try:
+        async with async_engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        print("[SUCCESS] PostgreSQL Connection pool initialized and verify.")
+    except Exception as e:
+        print(f"[FATAL] Database connection pool failed to initialize: {e}")
 
 app.add_middleware(
     CORSMiddleware,
