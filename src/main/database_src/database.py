@@ -1,13 +1,13 @@
 import os
 
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession    # type: ignore[import]
+from sqlalchemy.orm import declarative_base, sessionmaker   # type: ignore[import]
 
 # Database connection URL - Fallback to a local dev string if env vars aren't set
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+assyncpg://postgres:postgres@localhost:5432/taxifare"
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/taxifare"
 )
 
 # Initilize the Asynchronous Engine with tuned connection pool parameters
@@ -22,10 +22,11 @@ async_engine = create_async_engine(
 )
 
 # Session factory for generating isolated transaction workloads
-AsyncSessionLocal = async_sessionmaker(
+AsyncSessionLocal = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
-    expire_on_commit=False      # Prevents attributes from expiring after a commit (crucial for async)
+    expire_on_commit=False,
+    future=True               # Use 2.0-style sessions for async workflows
 )
 
 # Declarative base class that our relational schemas will inherit from
