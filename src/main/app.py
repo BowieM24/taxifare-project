@@ -1,9 +1,9 @@
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status  # type: ignore[import]
 from .utils.fleet_generator import auto_generate_fleet_assets
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
-from sqlalchemy import text
+from sqlalchemy import text     # type: ignore[import]
 
-from .db.database import async_engine
+from .db.database import async_engine   # type: ignore[import]
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
 from .sockets.connection_manager import manager
