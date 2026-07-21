@@ -4,6 +4,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession    # type: ignore[import]
 from sqlalchemy.orm import declarative_base, sessionmaker   # type: ignore[import]
 
+
 # Database connection URL - Fallback to a local dev string if env vars aren't set
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
