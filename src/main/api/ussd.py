@@ -1,28 +1,34 @@
-from fastapi import APIRouter, Form, Response, HTTPException  # type: ignore[import]
-from typing import Dict, List
+from fastapi import APIRouter, Form, Response, Depends  # type: ignore[import]
+from typing import Dict, List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession  # type: ignore[import]
+from sqlalchemy import select, update  # type: ignore[import]
+
+from ..db.database import get_db  # type: ignore[import]
+from ..database_src.models import Commuter, Transaction, Vehicle  # type: ignore[import]
+
 # Import connection manager workspace instance
 from ..sockets.connection_manager import manager
 
 # Changed from FastAPI() to APIRouter() to allow for modular routing and mounting in the main application
-router = APIRouter(tags=["TaxiFare™ USSD Engine"])
+router = APIRouter(prefix="/ussd", tags=["TaxiFare™ USSD Gateway"])
 
-# Mock database tracking wallet balances by phone number
-# Currency in SOuth African Rand (ZAR)
-MOCK_WALLET_DB: Dict[str, dict] = {
-    "+27831234567": {"name": "Sipho", "balance": 145.50}, 
-    "+27829876543": {"name": "Lerato", "balance": 22.00}
-}
+# # Mock database tracking wallet balances by phone number
+# # Currency in SOuth African Rand (ZAR)
+# MOCK_WALLET_DB: Dict[str, dict] = {
+#     "+27831234567": {"name": "Sipho", "balance": 145.50}, 
+#     "+27829876543": {"name": "Lerato", "balance": 22.00}
+# }
 
-# Mock database logging passenger transit histories by phone number
-MOCK_RIDE_HISTORY_DB: Dict[str, List[dict]] = {
-    "+27831234567": [
-        {"date": "16/07", "route": "Bree -> Randburg", "fare": "R22.00"}, 
-        {"date": "17/07", "route": "Baragwanath -> Bree", "fare": "R25.00"}
-    ],
-    "+27829876543": [
-        {"date": "15/07", "route": "Bree -> Midrand", "fare": "R36.00"}
-    ]
-}
+# # Mock database logging passenger transit histories by phone number
+# MOCK_RIDE_HISTORY_DB: Dict[str, List[dict]] = {
+#     "+27831234567": [
+#         {"date": "16/07", "route": "Bree -> Randburg", "fare": "R22.00"}, 
+#         {"date": "17/07", "route": "Baragwanath -> Bree", "fare": "R25.00"}
+#     ],
+#     "+27829876543": [
+#         {"date": "15/07", "route": "Bree -> Midrand", "fare": "R36.00"}
+#     ]
+# }
 
 def lookup_vehicle(session_id: str) -> str:
     """
@@ -35,13 +41,30 @@ def lookup_vehicle(session_id: str) -> str:
 
 
 # ---- INCLUSIVITY FALLBACK CAPABILITY (PASSENGER INTERFACE) ----
+@router.post("")
 @router.post("/ussd")
 async def ussd_handler(
     sessionId: str = Form(...),
     serviceCode: str = Form(...),
     phoneNumber: str = Form(...),
-    text: str = Form("")   # Changed From(...) to Form("") to accept the initial dial empty string
+    text: Optional[str] = Form(""),   # Changed From(...) to Form("") to accept the initial dial empty string
+    db: AsyncSession = Depends(get_db)  # Inject the database session for async operations
 ):
+    # Fetch or auto-provision commuter record by phone number
+    stmt = select(Commuter).where(Commuter.phone_number == phoneNumber)
+    result = await db.execute(stmt)
+    commuter = result.scalars().first()
+
+    if not commuter:
+        commuter = Commuter(
+            phone_number = phoneNumber,
+            name = "Passenger",
+            wallet_balance = 0.00
+        )
+        db.add(commuter)
+        await db.commit()
+        await db.refresh(commuter)
+
     # Split the input text to determine menu depth
     text_segments = text.split("*") if text else []
     level = len(text_segments)
@@ -66,23 +89,31 @@ async def ussd_handler(
             response_text = "CON Enter Seat Number(1-14):"
         
         elif selection == "2":
-            # Dynamic Wallet Balance Engine Lookups
-            user_profile = MOCK_WALLET_DB.get(phoneNumber)
-            if user_profile:
-                name = user_profile["name"]
-                balance = user_profile["balance"]
-                response_text = f"END Hello {name}.\nYour current TaxiFare™ wallet balance is: R{balance:.2f}"
-            else:
-                response_text = ("END Your phone number is not registered. Please sign up via the TaxiFare™ App.")
+            # Dynamic Wallet Balance Engine Lookups via PostgreSQL
+            formatted_balance = f"R{commuter.wallet_balance:.2f}"
+            response_text = (
+                f"END Hello {commuter.name}.\n"
+                f"Your current TaxiFare™ wallet balance is: {formatted_balance}"
+            )
         elif selection == "3":
-            # Dynamic Ride History Engine Lookup
-            rides = MOCK_RIDE_HISTORY_DB.get(phoneNumber)
-            if rides:
-                response_text = "END Your Recent Rides:\n"
-                for i, ride in enumerate(rides, 1):
-                    response_text += f"{i}. {ride['date']} {ride['route']} ({ride['fare']})\n"
-            else:
+            # Dynamic Ride History Engine Lookup via PostgreSQL
+            txt_stmt = (
+                select(Transaction, Vehicle)
+                .join(Vehicle, Transaction.vehicle_id == Vehicle.id)
+                .where(Transaction.commuter_id == commuter.id)
+                .order_by(Transaction.created_at.desc())
+                .limt(3))
+            )
+            tx_res = await db.execute(tx_stmt)
+            trips = tx_res.all()
+            
+            if not trips:
                 response_text = ("END No recent rides found associated with this mobile profile.")
+            else:
+                response_text = ("END Your Recent Rides:\n")
+                for i, (tx, vehicle) in enumerate(trips, 1):
+                    date_str = tx.created_at.strftime("%d/%m")
+                    response_text += f"{i}. {date_str} {vehicle.license_plate} (Seat {tx.seat_number} - R{tx.amount:.2f}\n)"
 
         elif selection == "4":
             response_text = ("END For assistance contact TaxiFare™ Support.")
@@ -116,6 +147,7 @@ async def ussd_handler(
     elif level == 3:
         seat_number = text_segments[1]
         payment_method = text_segments[2]
+        
         if payment_method == "1":
             method_name = "MTN MoMo"
         elif payment_method == "2":
@@ -126,6 +158,35 @@ async def ussd_handler(
         # Pull accurate registration key(we lookup  by route)
         target_taxi_id = lookup_vehicle(sessionId)
         
+        # Look up vehicle from databse to attach foreign key to transaction record
+        v_stmt = select(Vehicle).where(Vehicle.fleet_id == target_taxi_id)
+        v_result = await db.execute(v_stmt)
+        vehicle = v_result.scalars().first()
+
+        # If vehicle doesn't exist yet, auto-provision temporary record so transaction constraint passes
+        if not vehicle:
+            vehicle = Vehicle(
+                fleet_id=target_taxi_id, 
+                license_plate="ND 351-654", 
+                total_seats=14
+            )
+            db.add(vehicle)
+            await db.commit()
+            await db.refresh(vehicle)
+        
+        # Record transaction entry in PostgreSQL
+        new_transaction = Transaction(
+            commuter_id=commuter.id,
+            vehicle_id=vehicle.id,
+            amount=22.00,   #Standard fare baseline for that route
+            seat_number=int(seat_number),
+            payment_method=method_name,
+            status="PENDING"
+        )
+        db.add(new_transaction)
+        await db.commit()
+
+
         # --- WEB-SOCKET REAL-TIME BROADCAST TRIGGER ---
         # Fire a background broadcast to immediately alert the drivers display app
         # via open WebSocket stream channels before Electrum fully closes the session
