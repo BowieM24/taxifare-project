@@ -1,5 +1,6 @@
-import requests
-import json
+import urllib.parse
+import urllib.request
+import urllib.error
 
 # The local URL where our FastAPI app runs
 USSD_URL = "http://127.0.0.1:8000/ussd"
@@ -13,9 +14,16 @@ def simulate_ussd_step(session_id: str, phone: str, text_input: str):
         "text": text_input
     }
 
-    # Afrcia's Talking sends data as form-urlencoded, not JSON
-    response = requests.post(USSD_URL, data=payload)
-    return response.text
+    # Africa's Talking sends data as form-urlencoded, not JSON
+    encoded_data = urllib.parse.urlencode(payload).encode()
+    request = urllib.request.Request(
+        USSD_URL,
+        data=encoded_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST"
+    )
+    with urllib.request.urlopen(request) as response:
+        return response.read().decode()
 
 def run__full_session_simulation():
     session_id = "session_bree_rank_999"
@@ -80,6 +88,6 @@ def run__full_session_simulation():
 if __name__ == "__main__":
     try:
         run__full_session_simulation()
-    except requests.exceptions.ConnectionError:
+    except urllib.error.URLError:
         print("\n❌ Error: Your FastAPI server isn't running!")
         print("Please run: uvicorn src.api.ussd:app --reload --port 8000")
