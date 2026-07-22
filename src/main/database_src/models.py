@@ -2,9 +2,9 @@ import uuid
 
 from typing import List
 from datetime import datetime
-from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, Boolean  # type: ignore[import]
+from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore[import]  
+from sqlalchemy.dialects.postgresql import UUID # type: ignore[import]
 from .database import Base
 
 class Commuter(Base):
