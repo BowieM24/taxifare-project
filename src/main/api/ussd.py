@@ -102,9 +102,10 @@ async def ussd_handler(
                 .join(Vehicle, Transaction.vehicle_id == Vehicle.id)
                 .where(Transaction.commuter_id == commuter.id)
                 .order_by(Transaction.created_at.desc())
-                .limt(3))
+                .limit(3)
             )
-            tx_res = await db.execute(tx_stmt)
+            
+            tx_res = await db.execute(txt_stmt)
             trips = tx_res.all()
             
             if not trips:
