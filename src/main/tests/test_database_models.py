@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from src.main.db.models import Commuter, Vehicle, Transaction
+from src.main.database_src.models import Commuter, Vehicle, Transaction
 
 @pytest_asyncio.fixture(scope="function")
 async def seed_commuter_and_vehicle(test_db_session):
@@ -64,8 +64,8 @@ async def test_commuter_phone_uniqueness_constraint(test_db_session):
     test_db_session.add(commuter1)
     await test_db_session.commit()
 
-    test_db_session_add(commuter2)
-    with pytest.raise(IntegrityError):
+    test_db_session.add(commuter2)
+    with pytest.raises(IntegrityError):
         await test_db_session.commit()
 
 
@@ -86,13 +86,13 @@ async def test_create_vehicle_record(test_db_session):
     test_db_session.add(vehicle)
     await test_db_session.commit()
 
-    stmt = select(Vehicle).where(Vehicle.registration_number = "randburg-quantum-123")
+    stmt = select(Vehicle).where(Vehicle.registration_number == "randburg-quantum-123")
     res = await test_db_session.execute(stmt)
     fetched_vehicle = res.scalar_one_or_none()
 
     assert fetched_vehicle is not None
     assert fetched_vehicle.capacity == 22
-    assert fecthed_vehicle.is_active is True
+    assert fetched_vehicle.is_active is True
 
 
 # =============================================================================
@@ -104,12 +104,12 @@ async def test_create_transaction_relational_mappting(test_db_session, seed_comm
     """
     Verify transaction records associate correctly with Commuter and Vehicle.
     """
-    commuter, vehicle = seed_commuter_and vehicle
+    commuter, vehicle = seed_commuter_and_vehicle
 
     transaction = Transaction(
         commuter_id=commuter.id,
         vehicle_id=vehicle.id,
-        seat_number-4,
+        seat_number=4,
         fare_amount=Decimal("22.50"),
         status="COMPLETED"
     )
