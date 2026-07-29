@@ -1,7 +1,7 @@
-import pytest
+import pytest   # type: ignore[import]
 
 from unittest.mock import AsyncMock, MagicMock
-from src.main.sockets.connection_manager import ConnectionManager
+from src.main.sockets.connection_manager import ConnectionManager   # type: ignore[import]
 
 @pytest.mark.asyncio
 async def test_connection_manager_connect_and_disconnect():
