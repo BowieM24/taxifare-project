@@ -153,6 +153,3 @@ async def payment_webhook(
     logger.warning(f"✕ PAYMENT FAILED: {data.transaction_id}")
     return {"message": "Failure logged"}
     
-
-# End of file
-    
