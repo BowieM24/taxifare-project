@@ -3,6 +3,9 @@ from .utils.fleet_generator import auto_generate_fleet_assets
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 
+from src.main.api.payments import router as payments_router
+from src.main.api.notification import router as notification_router # type: ignore[import]
+
 from .db.database import async_engine   # type: ignore[import]
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
@@ -29,6 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(payments_router)
+app.include_router(notification_router)
 app.include_router(telematics_router)
 app.include_router(ussd_router)
 
