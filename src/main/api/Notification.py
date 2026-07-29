@@ -7,12 +7,12 @@ from typing import Dict, Set, List
 from fastapi import APIRouter, HTTPException, Request, Header  # type: ignore[import]
 from pydantic import BaseModel  # type: ignore[import]
 
+from src.main.config import settings
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Notifications & Webhooks"])
 
-# Configuration (Use environment variables in production)
-ELECTRUM_WEBHOOK_SECRET = b"our_electrum_webhook_secret"
 
 # ---- IN-MEMORY CACHES (Replace with Redis in Production) ----
 PROCESSED_TRANSACTIONS: Set[str] = set()  # For idempotency and duplicate prevention
@@ -43,14 +43,14 @@ class WebhookData(BaseModel):
 
 # ---- UTILITIES --- Helper for security (Electrum/MTN usually use HMAC-SHA256)
 def verify_signature(payload: bytes, signature: str | None) -> None:
-    SECRET = ELECTRUM_WEBHOOK_SECRET  # Keep this secure in production
     if not signature:
         raise HTTPException(status_code=401, detail = "Missing security signature")
-    
-    expected_sig = hmac.new(SECRET, payload, hashlib.sha256).hexdigest()
+
+    secret_bytes = settings.ELECTRUM_WEBHOOK_SECRET.encode("utf-8")
+    expected_sig = hmac.new(secret_bytes, payload, hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(expected_sig, signature):
-        raise HTTPException(status_code = 401, detail = "Invalid signature authentication")
+        raise HTTPException(status_code = 401, detail="Invalid signature authentication")
 
 def is_rate_limited(commuter_id: str, limit: int = 5, window: int = 60) -> bool:
     """Limits a commuter to 5 payments requests per 60 seconds."""
