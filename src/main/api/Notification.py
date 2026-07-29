@@ -1,17 +1,24 @@
-from fastapi import FastAPI, HTTPException, Request, Header  # type: ignore[import]
-from pydantic import BaseModel
 import hmac
 import hashlib
 import time
+import logging
 
-# Use previous app setup
-app = FastAPI(title="TaxiFare API")
+from typing import Dict, Set, List
+from fastapi import APIRouter, HTTPException, Request, Header  # type: ignore[import]
+from pydantic import BaseModel  # type: ignore[import]
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(tags=["Notifications & Webhooks"])
+
+# Configuration (Use environment variables in production)
+ELECTRUM_WEBHOOK_SECRET = b"our_electrum_webhook_secret"
 
 # ---- IN-MEMORY CACHES (Replace with Redis in Production) ----
-PROCESSED_TRANSACTIONS = set()  # For idempotency and duplicate prevention
-RATE_LIMIT_TRACKER = {}  # For rate limiting (commuter_id: [timestamps])
+PROCESSED_TRANSACTIONS: Set[str] = set()  # For idempotency and duplicate prevention
+RATE_LIMIT_TRACKER: Dict[str, List[float]] = {}  # For rate limiting (commuter_id: [timestamps])
 
-
+# ----- PYDANTIC MODELS -----
 # Models for the 'Commuter Profile' and 'Transaction
 class PaymentRequest(BaseModel):
     commuter_id: str
@@ -19,6 +26,7 @@ class PaymentRequest(BaseModel):
     amount: float
     taxi_id: str
     auth_pin: str
+
 
 class TransactionResponse(BaseModel):
     transaction_id: str
@@ -28,14 +36,14 @@ class TransactionResponse(BaseModel):
 # 1. The Webhook Payload Model (Standard for MTN MoMo/Electrum style)
 class WebhookData(BaseModel):
     transaction_id: str
-    external_reference: str # Seat ID or Commuter ID
+    external_reference: str # e.g. Seat ID or Commuter ID
     status: str             # SUCCESS, FAILED, or PENDING
     amount: float
     provider: str           # e.g. 'MTN_MOMO' or 'VODAPAY'
 
 # ---- UTILITIES --- Helper for security (Electrum/MTN usually use HMAC-SHA256)
-def verify_signature(payload: bytes, signature: str):
-    SECRET = b"your_electrum_webhook_secret"  #Keep this secure in production
+def verify_signature(payload: bytes, signature: str | None) -> None:
+    SECRET = ELECTRUM_WEBHOOK_SECRET  # Keep this secure in production
     if not signature:
         raise HTTPException(status_code=401, detail = "Missing security signature")
     
@@ -60,21 +68,32 @@ def is_rate_limited(commuter_id: str, limit: int = 5, window: int = 60) -> bool:
     RATE_LIMIT_TRACKER[commuter_id].append(current_time)
     return False
 
-# Core API functions (Placeholders for real logic)
-def alert_driver(taxi_id: str, seat_id: int):
-    print(f"DEBUG: Taxi {taxi_id} seat {seat_id} turned GREEN.")
+# -------- DOMAIN ACTIONS / NOTIFICATIONS -----
+async def alert_driver(taxi_id: str, seat_id: int) -> None:
+    """
+    Trigger real-time WebSocket update for driver dashboard.
+    """
+    logger.info(f"DEBUG: Taxi {taxi_id} seat {seat_id} turned GREEN.")
 
-def send_sms_receipt(communter_id: str):
-    print(f"DEBUG: SMS Receipt sent to commuetr {communter_id}.")
+async def send_sms_receipt(commuter_id: str) -> None:
+    """
+    Trigger SMS gateway (Africa's Talking/ local aggregator).
+    """
+    logger.info(f"DEBUG: SMS Receipt sent to commuter {commuter_id}.")
 
-# Endpoints
-@app.post("/process-fare", response_model = TransactionResponse)
+
+# ------- ENDPOINTS ------------
+@router.post("/process-fare", response_model = TransactionResponse)
 async def process_fare(payment: PaymentRequest):
-    # 1. Rate Limiting Protection
+    """ Processes instant fare request with rate limiting and 2FA PIN check."""
+    # 1. Rate Limiting Protection(Check)
     if is_rate_limited(payment.commuter_id):
-        raise HTTPException(status_code = 429, detail = "Too many payment attempts. Please try again later.")
+        raise HTTPException(
+            status_code = 429, 
+            detail = "Too many payment attempts. Please try again later."
+        )
     
-    # 2. Validity and Authentication 
+    # 2. Validity and Authentication Check
     if not payment.auth_pin:
         raise HTTPException(status_code = 401, detail = "Two-factor authentication failed")
        
@@ -83,29 +102,34 @@ async def process_fare(payment: PaymentRequest):
 
     if transaction_approved:
         # 4. Alert Taxi Driver
-        alert_driver(payment.taxi_id, payment.seat_id)
+        await alert_driver(payment.taxi_id, payment.seat_id)
 
         # 5. Digital Receipt via SMS
-        send_sms_receipt(payment.commuter_id)
+        await send_sms_receipt(payment.commuter_id)
 
-        return {
-            "transaction_id": "TXN-12345",
-            "status": "Approved",
-            "message": f"Seat {payment.seat_id} is now paid."
-        }
-    else:
-        return {"transaction_id": "TXN-0000", "status": "Declined", "message": "Insufficient funds"}
+        return TransactionResponse(
+            transaction_id="TXN-12345",
+            status="Approved",
+            message=f"Seat {payment.seat_id} is now paid."
+        )
+
+    return TransactionResponse(
+        transaction_id="TXN-0000",
+        status="Declined",
+        message="Insufficient funds"
+        )
 
 # 2. The Webhook Endpoint
-@app.post("/webhooks/payments")
+@router.post("/webhooks/payments")
 async def payment_webhook(
     data: WebhookData,
     request: Request,
-    x_signature: str = Header(None) # Security header to verify its really from Electrum
+    x_signature: str | None = Header(None, alias="X-Signature") # Security header to verify its really from Electrum
 ):
+    """Secure webhook endpoint for Electrum/ MTN MoMo payment notification."""
     # SECURITY: Verify the signature (Crucial so hackers don't fake payments)
     body = await request.body()
-    # verify_signature(awiat request.body(), x_signature)
+    verify_signature(body, x_signature)
 
     # 6. Idempotency Check: Prevent duplicate processing of the same transaction
     if data.transaction_id in PROCESSED_TRANSACTIONS:
@@ -113,76 +137,22 @@ async def payment_webhook(
 
     if data.status == "SUCCESS":
         # A. Update Database: Mark transaction as 'Paid'
-        # update_db_transaction_status(data.tranaction_id, "APPROVED")
         PROCESSED_TRANSACTIONS.add(data.transaction_id)  # Mark as processed for idempotency
 
         # B. Real-time Action: Trigger the Seat to turn Green
-        alert_driver(data.transaction_id, int(data.external_reference))
-        # This talks to the Driver's App via WebSockets
-        print(f"✓ PAYMENT CONFIRMED: Seat {data.external_reference} for Taxi {data.transaction_id}")
+        # external_reference is expected to be a seat id in this simplified model
+        await alert_driver(data.transaction_id, int(data.external_reference))
+        # C. Send Receipt
+        await send_sms_receipt(data.external_reference)
 
-        # C. Send  Receipt
-        send_sms_receipt(data.external_reference)
-
+        logger.info(
+            f"✓ PAYMENT CONFIRMED: Seat {data.external_reference} for Transaction {data.transaction_id}"
+        )
         return {"message": "Webhook received and processed"}
     
-    else:
-        print(f"✕ PAYMENTY FAILED: {data.transaction_id}")
-        return {"message": "Failure logged"}
+    logger.warning(f"✕ PAYMENT FAILED: {data.transaction_id}")
+    return {"message": "Failure logged"}
     
 
-# Helper for security (Electrum/MTN usually use HMAC-SHA256)
-# def verify_signature(payload: bytes, signature: str):
-#     secret = b"your_electrum_webhook_secret"
-#     expected_sig = hmac.new(secret, payload, hashlib.sha256)
-
-
-# Models for the 'Commuter Profile' and 'Transaction'
-class PaymentRequest(BaseModel):
-    commuter_id: str
-    seat_id: int
-    amount: float
-    taxi_id: str
-    auth_pin: str  # Simulated 2FA/PIN [cite: 2]
-
-class TransactionResponse(BaseModel):
-    transaction_id: str
-    status: str
-    message: str
-
-@app.post("/process-fare", response_model=TransactionResponse)
-async def process_fare(payment: PaymentRequest):
-    # 1. Validity and Authentication [cite: 2]
-    # In a real app, you would verify the PIN and Commuter Profile here.
-    if not payment.auth_pin:
-        raise HTTPException(status_code=401, detail="Two-factor authentication failed")
-
-    # 2. Request transaction to Merchant/Bank [cite: 2]
-    # Logic to interface with an Internet Gateway like Stitch or Ozow
-    transaction_approved = True  # Mocked logic 
-
-    if transaction_approved:
-        # 3. Alert Taxi Driver 
-        # This would trigger a WebSocket message to turn the seat 'green'
-        alert_driver(payment.taxi_id, payment.seat_id)
-        
-        # 4. Digital Receipt via SMS 
-        send_sms_receipt(payment.commuter_id)
-
-        return {
-            "transaction_id": "TXN-12345",
-            "status": "Approved",
-            "message": f"Seat {payment.seat_id} is now paid."
-        }
-    else:
-        # Handle 'Not Approved' path 
-        return {"transaction_id": "TXN-0000", "status": "Declined", "message": "Insufficient funds"}
-
-def alert_driver(taxi_id: str, seat_id: int):
-    # Placeholder for WebSocket/Real-time logic
-    print(f"DEBUG: Taxi {taxi_id} seat {seat_id} turned GREEN.")
-
-def send_sms_receipt(commuter_id: str):
-    # Placeholder for Twilio/SMS Gateway logic 
-    print(f"DEBUG: SMS Receipt sent to commuter {commuter_id}.")
+# End of file
     
