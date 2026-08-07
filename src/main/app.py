@@ -1,28 +1,44 @@
+from contextlib import asynccontextmanager   # type: ignore[import]
 from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status  # type: ignore[import]
-from .utils.fleet_generator import auto_generate_fleet_assets
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 
 from src.main.api.payments import router as payments_router
 from src.main.api.notification import router as notification_router # type: ignore[import]
-
-from .db.database import async_engine   # type: ignore[import]
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
+from .db.database import async_engine   # type: ignore[import]
+from .db.redis import redis_client      #Import Redis client instance
 from .sockets.connection_manager import manager
+from .utils.fleet_generator import auto_generate_fleet_assets
 
 
-app = FastAPI(title="TaxiFare™ Telematic API", version="1.0.0")
-
-@app.on_event("startup")
-async def verify_database_connection():
-    """Validates connectivity to the PostgreSQL cluster on application start-up."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ------ STARTUP LIFECYCLE ------
+    # 1. Validate PostgreSQL connection pool
     try:
         async with async_engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        print("[SUCCESS] PostgreSQL Connection pool initialized and verify.")
+        print("[SUCCESS] PostgreSQL Connection pool initilized and verified.")
     except Exception as e:
         print(f"[FATAL] Database connection pool failed to initialize: {e}")
+
+    # 2. Validate Redis connection
+    try:
+        await redis_client.ping()
+        print("[SUCCESS] Redis Connection pool initialized and verified.")
+    except Exception as e:
+        print(f"[FATAL] Redis connection failed to initialize: {e}")
+
+    yield   # Application runs while suspended here
+
+    # ----- SHUTDOWN LIFECYCLE -----
+    # Close Redis connection pool cleanly
+    await redis_client.close()
+    pint("[INFO] Redis connection pool closed cleanly.")
+
+app = FastAPI(title="TaxiFare™ Telematic API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,22 +70,19 @@ async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
         tags=["Fleet Management"], 
         response_model=None)
 
-async def register_vehicle_and_generate_qrs(vehicle: dict = Body(...), background_task= None):
+async def register_vehicle_and_generate_qrs(vehicle: dict = Body(...), background_tasks: BackgroundTasks = None):
     vehicle_id = vehicle.get("vehicle_id")
     seat_count = vehicle.get("seat_count")
 
     if not vehicle_id or not isinstance(seat_count, int) or seat_count <= 0:
         raise HTTPException(status_code=400, detail="Invalid vehicle identity profile.")
     
-    # Stanadard import inside the function to safeguard the execution context
-    from fastapi import BackgroundTasks as FastAPIBackgroundTasks # type: ignore[import]
-
     # If FastAPI fails to inject it natively due to environment type mismatches, initialize manually
-    if background_task is None:
-        background_task = FastAPIBackgroundTasks()
+    if background_tasks is None:
+        background_tasks = BackgroundTasks()
 
-    # Pass background tasks execution utilizing exact dictionary key reading syntax
-    background_task.add_task(auto_generate_fleet_assets, vehicle_id, seat_count)
+    # Queue fleet asset generation in the background
+    background_tasks.add_task(auto_generate_fleet_assets, vehicle_id, seat_count)
 
     return {
         "status": "registration_initiated",
