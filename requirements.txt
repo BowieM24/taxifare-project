@@ -3,3 +3,4 @@ uvicorn[standard]>=0.30.0
 qrcode[pil]>=8.0
 numpy>=1.26.0
 pydantic>=2.7.0
+redis>=5.0.0
