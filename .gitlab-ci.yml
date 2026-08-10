@@ -2,21 +2,29 @@ stages:
   - test
 
 variables:
-  # Configure a temporary PostgreSQL service container for tests
+  # Database Configuration for CI Container
   POSTGRES_DB: taxifare_test_db
   POSTGRES_USER: test_user
   POSTGRES_PASSWORD: test_password
   POSTGRES_HOST_AUTH_METHOD: trust
-  # Connection string used by SQLAlchemy inside CI
-  DATABASE_URL: "postgresql+asyncpg://test_user:test_password@postgres/taxifare_test_db"
+
+  # Environment Variables consumed by config.py
+  DATABASE_URL: "postgresql+asyncpg://test_user:test_password@postgres5432/taxifare_test_db"
+  REDIS_URL: "redis://redis:6379/0"
+  ELECTRUM_API_KEY: "ci_test_electrum_key"
+  ELECTRUM_WEBHOOK_SECRET: "ccci_test_webhook_secret"
   PYTHONPATH: "."
 
 default:
   image: python:3.11-slim
 
 services:
+  # Spin up PostgreSQL service container
   - name: postgres:15-alpine
     alias: postgres
+  # Spin up Redis service container
+  - name: redis:7-alpine
+    alias: redis
 
 cache:
   paths:
@@ -26,13 +34,13 @@ before_script:
   # Install system dependencies if required (e.g., libpq-dev for asyncpg)
   - apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev
   - python -m pip install --upgrade pip
-  - pip install -r requirements.txt
-  - pip install pytest pytest-asyncio httpx aiosqlite
+  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  - pip install pytest pytest-asyncio httpx aiosqlite redis qrcode pydantic-settings
 
 pytest_integration_tests:
   stage: test
   script:
-    - echo "🚀 Running TaxiFare™ Automated Integration Test Suite..."
+    - echo "🚀 Running TaxiFare™ Automated Integration Test Suite in GitLab CI..."
     - pytest -v tests/
   only:
     - merge_requests
