@@ -1,14 +1,13 @@
 import hmac
 import hashlib
-import time
 import logging
 
-from typing import Dict, Set, List
 from fastapi import APIRouter, HTTPException, Request, Header  # type: ignore[import]
 from pydantic import BaseModel  # type: ignore[import]
 
 from src.main.config import settings
 from src.main.services.redis_service import is_rate_limited, is_transaction_processed
+from src.main.sockets.connection_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +32,23 @@ class TransactionResponse(BaseModel):
 # 1. The Webhook Payload Model (Standard for MTN MoMo/Electrum style)
 class WebhookData(BaseModel):
     transaction_id: str
+    vehicle_id: str          # Target taxi ID (e.g. TAXI-GP-001)
     external_reference: str  # e.g. Seat ID or Commuter ID
     status: str             # SUCCESS, FAILED, or PENDING
     amount: float
     provider: str           # e.g. 'MTN_MOMO' or 'VODAPAY'
 
 # -------- DOMAIN ACTIONS / NOTIFICATIONS -----
-async def alert_driver(taxi_id: str, seat_id: int) -> None:
+async def alert_driver(taxi_id: str, seat_id: int, amount: float = 22.50, tx_id: str = "TXN-12345") -> None:
     """
     Trigger real-time WebSocket update for driver dashboard.
     """
+    await manager.broadcast_seat_update(
+        vehicle_id=taxi_id, 
+        seat_id=seat_id,
+        amount=amount, 
+        tx_id=tx_id, 
+        status="PAID")
     logger.info(f"DEBUG: Taxi {taxi_id} seat {seat_id} turned GREEN.")
 
 async def send_sms_receipt(commuter_id: str) -> None:
@@ -68,11 +74,12 @@ async def process_fare(payment: PaymentRequest):
         raise HTTPException(status_code = 401, detail = "Two-factor authentication failed")
        
     # 3. Process Transaction
-    await alert_driver(payment.taxi_id, payment.seat_id)
+    tx_id = "TXN-12345"
+    await alert_driver(payment.taxi_id, payment.seat_id, payment.amount, tx_id)
     await send_sms_receipt(payment.commuter_id)
 
     return TransactionResponse(
-        transaction_id="TXN-12345",
+        transaction_id=tx_id,
         status="Approved",
         message=f"Seat {payment.seat_id} is now paid."
     )
@@ -94,16 +101,27 @@ async def payment_webhook(
         return {"message": "Duplicate transaction ignored/Webhook already processed (Idempotent bypass)"}
 
     if data.status == "SUCCESS":
+        seat_number = int(data.external_reference)
         # Trigger real-time seat update & receip
-        await alert_driver(data.transaction_id, int(data.external_reference))
+        await manager.broadcast_seat_update(
+            vehicle_id=data.vehicle_id,
+            seat_id=seat_number,
+            amount=data.amount,
+            tx_id=data.transaction_id,
+            status="PAID"
+        )
         # Send Receipt
         await send_sms_receipt(data.external_reference)
 
         logger.info(
-            f"✓ PAYMENT CONFIRMED: Seat {data.external_reference} for Transaction {data.transaction_id}"
+            f"✓ PAYMENT CONFIRMED: Seat {data.external_reference} for Taxi {data.vehicle_id} Transaction {data.transaction_id}"
         )
-        return {"message": "Webhook received and processed"}
+        return {"message": "Payment processed successfully."}
     
     logger.warning(f"✕ PAYMENT FAILED: {data.transaction_id}")
     return {"message": "Failure logged"}
-    
+
+
+@router.get("/notifications")
+async def get_notifications():
+    return {"status": "ok"}
