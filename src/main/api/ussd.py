@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession  # type: ignore[import]
 from sqlalchemy import select, update  # type: ignore[import]
 
-from ..db.database import get_db  # type: ignore[import]
+from ..database_src.database import get_db  # type: ignore[import]
 from ..database_src.models import Commuter, Transaction, Vehicle  # type: ignore[import]
 
 # Import connection manager workspace instance
