@@ -41,7 +41,7 @@ pytest_integration_tests:
   stage: test
   script:
     - echo "🚀 Running TaxiFare™ Automated Integration Test Suite in GitLab CI..."
-    - pytest -v tests/
+    - pytest -v src/main/tests/
   only:
     - merge_requests
     - main
