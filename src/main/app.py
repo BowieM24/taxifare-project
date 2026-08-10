@@ -7,8 +7,8 @@ from src.main.api.payments import router as payments_router
 from src.main.api.notification import router as notification_router # type: ignore[import]
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
-from .db.database import async_engine   # type: ignore[import]
-from .db.redis import redis_client      #Import Redis client instance
+from .database_src.database import async_engine   # type: ignore[import]
+from .database_src.redis import redis_client      # type: ignore[import]
 from .sockets.connection_manager import manager
 from .utils.fleet_generator import auto_generate_fleet_assets
 
@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
 
     # ----- SHUTDOWN LIFECYCLE -----
     # Close Redis connection pool cleanly
-    await redis_client.close()
-    pint("[INFO] Redis connection pool closed cleanly.")
+    await redis_client.aclose()
+    print("[INFO] Redis connection pool closed cleanly.")
 
 app = FastAPI(title="TaxiFare™ Telematic API", version="1.0.0", lifespan=lifespan)
 
