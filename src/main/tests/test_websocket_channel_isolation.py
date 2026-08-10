@@ -32,7 +32,7 @@ def test_websocket_messages_are_isolated_by_vehicle_id(sync_client):
 
                 # 2. Trigger webhook for TAXI-GP-001 ONLY
                 webhook_payload = {
-                    "transction_id": "TXN-ISOLATION-001",
+                    "transaction_id": "TXN-ISOLATION-001",
                     "vehicle_id": target_vehicle,
                     "external_reference": "2",
                     "status": "SUCCESS",
@@ -40,7 +40,7 @@ def test_websocket_messages_are_isolated_by_vehicle_id(sync_client):
                     "provider": "MTN_MOMO"
                 }
 
-                response = sync_client.post("/webooks/payments", json=webhook_payload)
+                response = sync_client.post("/webhooks/payments", json=webhook_payload)
                 assert response.status_code == 200
 
                 # 3. Target vehicle receives the frame
