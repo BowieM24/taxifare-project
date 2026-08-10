@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 
 from src.main.api.payments import router as payments_router
-from src.main.api.notification import router as notification_router # type: ignore[import]
+from src.main.api.notifications import router as notification_router # type: ignore[import]
 from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
 from .database_src.database import async_engine   # type: ignore[import]
