@@ -193,7 +193,9 @@ async def ussd_handler(
         # via open WebSocket stream channels before Electrum fully closes the session
         await manager.broadcast_seat_update(
             vehicle_id=target_taxi_id,
-            seat_number=int(seat_number),
+            seat_id=int(seat_number),
+            tx_id=new_transaction.id,
+            amount=new_transaction.amount,
             status="PAID")
 
         response_text = (
