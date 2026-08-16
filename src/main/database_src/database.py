@@ -8,7 +8,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker   # type: ignore[impor
 # Database connection URL - Fallback to a local dev string if env vars aren't set
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/taxifare"
+    "postgresql+psycopg://postgres:postgres@localhost:5432/taxifare"
 )
 
 # Initilize the Asynchronous Engine with tuned connection pool parameters
