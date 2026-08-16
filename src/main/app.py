@@ -3,6 +3,7 @@ from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, We
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 
+from src.main.core.security import router as security_router
 from src.main.api.payments import router as payments_router
 from src.main.api.notification import router as notification_router # type: ignore[import]
 from .api.ussd import router as ussd_router
@@ -11,6 +12,7 @@ from .database_src.database import async_engine   # type: ignore[import]
 from .database_src.redis import redis_client      # type: ignore[import]
 from .sockets.connection_manager import manager
 from .utils.fleet_generator import auto_generate_fleet_assets
+
 
 
 @asynccontextmanager
@@ -52,7 +54,7 @@ app.include_router(payments_router)
 app.include_router(notification_router)
 app.include_router(telematics_router)
 app.include_router(ussd_router)
-
+app.include_router(security_router)
 
 @app.websocket("/ws/fleet/{vehicle_id}")
 async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
