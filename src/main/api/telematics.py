@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from fastapi import APIRouter, HTTPException  # type: ignore[import]
-from pydantic import BaseModel  # type: ignore[import]
+from pydantic import BaseModel, Field  # type: ignore[import]
 
 import numpy as np  # type: ignore[import]
 
@@ -20,7 +20,7 @@ BREE_RANK_GEOFENCE = {"lat": -26.2012, "lon": 28.0401, "radius_km": 0.15}
 
 class SeatTelemetry(BaseModel):
     vehicle_id: str
-    seat_number: int
+    seat_number: int = Field(..., ge=1, le=16)  # Adds validation boundaries
     accel_variance: float 
     accel_magnitude: float
     # Smartphone sensor fusion fields
@@ -98,5 +98,5 @@ async def receive_seat_telematics(data: SeatTelemetry):
             seat_number=data.seat_number,
             status="VACANT"
         )
-        return {"status": "processed", "action": "trigger_fare_close"}
-    return {"status": "processed", "state": evaluation}
+        return {"status": "success", "action": "trigger_fare_close"}
+    return {"status": "success", "state": evaluation}
