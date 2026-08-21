@@ -14,13 +14,13 @@ async def test_connection_manager_connect_and_disconnect():
     vehicle_id = "bree-quantum-xyz-789"
     
     # Test connection
-    await manager.connect(mock_websocket, vehicle_id)
+    await manager.connect(vehicle_id, mock_websocket)
     assert vehicle_id in manager.active_connections
     assert mock_websocket in manager.active_connections[vehicle_id]
 
     # Test disconnection
-    manager.disconnect(mock_websocket, vehicle_id)
-    assert mock_websocket not in manager.active_connections[vehicle_id]
+    manager.disconnect(vehicle_id, mock_websocket)
+    assert vehicle_id not in manager.active_connections
 
 
 @pytest.mark.asyncio
@@ -34,20 +34,27 @@ async def test_websocket_channel_isolation():
     ws_vehicle_b = AsyncMock()
 
     # Register two distinct taxi's
-    await manager.connect(ws_vehicle_a, "bree-quantum-xyz-789")
-    await manager.connect(ws_vehicle_b, "randburg-quantum-abc-123")
+    await manager.connect("bree-quantum-xyz-789", ws_vehicle_a)
+    await manager.connect("randburg-quantum-abc-123", ws_vehicle_b)
 
     # Broadcast to Taxi A
     await manager.broadcast_seat_update(
         vehicle_id="bree-quantum-xyz-789",
-        seat_number=4,
-        status="PAID"
+        seat_id=4,
+        amount=150.00,
+        tx_id="txn-001",
+        status="PAID",
     )
 
     # Taxi A receives the JSON payload
     ws_vehicle_a.send_json.assert_called_once_with({
-        "seat_number": 4,
-        "status": "PAID"
+        "event": "PAYMENT_RECEIVED",
+        "vehicle_id": "bree-quantum-xyz-789",
+        "seat_id": 4,
+        "status": "PAID",
+        "seat_color": "GREEN",
+        "amount": 150.00,
+        "transaction_id": "txn-001"
     })
 
     # Taxi B receives nothing
