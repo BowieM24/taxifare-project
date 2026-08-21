@@ -1,4 +1,4 @@
-import pytest
+import pytest               # type: ignore[import]
 from unittest.mock import patch, AsyncMock
 
 @pytest.mark.asyncio
@@ -20,10 +20,10 @@ async def test_telematics_sensor_fusion_payload(client):
         assert response.status_code == 200
         assert response.json()["status"] == "success"
 
-@pytest.mark.asynico
+@pytest.mark.asyncio
 async def test_telematics_out_of_bounds_seat_rejection(client):
     """
-    Ensure invalid seat number (e.g. seat 99) return HHTP 442 payload errors.
+    Ensure invalid seat number (e.g. seat 99) return HTTP 422 payload errors.
     """
     invalid_payload = {
         "vehicle_id": "bree-quantum-xyz-789",
