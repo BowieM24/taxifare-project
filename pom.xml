@@ -1,0 +1,88 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.taxifare</groupId>
+    <artifactId>taxifare-project</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>TaxiFare Project</name>
+    <description>Maven wrapper for the TaxiFare Python project and its declared dependencies.</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <python.executable>${env.PYTHON_EXECUTABLE}</python.executable>
+        <requirements.file>${project.basedir}/requirements.txt</requirements.file>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>windows-default</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <python.executable>${project.basedir}/.venv/Scripts/python.exe</python.executable>
+            </properties>
+        </profile>
+        <profile>
+            <id>unix-default</id>
+            <activation>
+                <os>
+                    <family>!windows</family>
+                </os>
+            </activation>
+            <properties>
+                <python.executable>${project.basedir}/.venv/bin/python</python.executable>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>install-python-deps</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${python.executable}</executable>
+                            <arguments>
+                                <argument>-m</argument>
+                                <argument>pip</argument>
+                                <argument>install</argument>
+                                <argument>-r</argument>
+                                <argument>${requirements.file}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>verify-python-deps</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${python.executable}</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>import fastapi, sqlalchemy, uvicorn, redis, httpx, pydantic; print('Dependency validation OK')</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
