@@ -18,8 +18,6 @@ config = context.config
 
 # 2. Dynamically set the database URL from config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-
-
 # Configure logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -49,11 +47,7 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """Run migrations using an existing connection."""
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata,
-    )
-
+    context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
 
@@ -67,7 +61,6 @@ async def run_async_migrations() -> None:
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
-
     await connectable.dispose()
 
 def run_migrations_online() -> None:
