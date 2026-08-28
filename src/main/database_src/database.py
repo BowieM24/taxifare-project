@@ -1,14 +1,14 @@
 import os
 
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession    # type: ignore[import]
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker    # type: ignore[import]
 from sqlalchemy.orm import declarative_base, sessionmaker   # type: ignore[import]
 
 
 # Database connection URL - Fallback to a local dev string if env vars aren't set
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5432/taxifare"
+    "postgresql+psycopg://user:password@localhost:6432/taxifare_db" # Port 6432 -> PgBouncer  
 )
 
 # Initilize the Asynchronous Engine with tuned connection pool parameters
@@ -17,7 +17,7 @@ async_engine = create_async_engine(
     echo=False,             # Set to True only during deep SQL debugging sessions
     pool_size=20,           # Maintain up to 20 persistant connections in the pool
     max_overflow=10,        # Allow up to 10 bursting connections beyond pool_size under high load
-    pool_timeout=30,        # Seconds to wait before throwing a timeout error if pool is exhausted
+    pool_timeout=30.0,        # Seconds to wait before throwing a timeout error if pool is exhausted
     pool_recycle=1800,      # Recycle connections after 30 minutes to prevent stale/dropped sockets
     pool_pre_ping=True      # Run an internal health check ("PING") before handing a connection out
 )
