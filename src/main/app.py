@@ -1,18 +1,27 @@
+import asyncio
 from contextlib import asynccontextmanager   # type: ignore[import]
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status  # type: ignore[import]
+
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status, Request  # type: ignore[import]
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 
 from src.main.core.security import router as security_router
 from src.main.api.payments import router as payments_router
 from src.main.api.notification import router as notification_router # type: ignore[import]
-from .api.ussd import router as ussd_router
+from src.main.schemas.electrum_events import ErrorDetail
+from src.main.workers.offline_queue import process_offline_transactions
+
+from .api.ussd import router as ussd_router3
 from .api.telematics import router as telematics_router
+from .api.simulate_ussd import router as simulate_ussd_router
+from .api.electrum_events import router as electrum_events_router
+
 from .database_src.database import async_engine   # type: ignore[import]
 from .database_src.redis import redis_client      # type: ignore[import]
 from .sockets.connection_manager import manager
 from .utils.fleet_generator import auto_generate_fleet_assets
-
 
 
 @asynccontextmanager
@@ -33,9 +42,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[FATAL] Redis connection failed to initialize: {e}")
 
+    # 3. Start background worker for offline queue processing
+    queue_worker_task = asyncio.create_task(process_offline_transactions())
+
     yield   # Application runs while suspended here
 
     # ----- SHUTDOWN LIFECYCLE -----
+    # Cancel the background worker cleanly
+    queue_worker_task.cancel()
+    try: 
+        await queue_worker_task
+    except asyncio.CancelledError:
+        pass
+
     # Close Redis connection pool cleanly
     await redis_client.aclose()
     print("[INFO] Redis connection pool closed cleanly.")
@@ -50,11 +69,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Route registrations
+app.include_router(electrum_events_router)
 app.include_router(payments_router)
 app.include_router(notification_router)
 app.include_router(telematics_router)
 app.include_router(ussd_router)
 app.include_router(security_router)
+app.include_router(simulate_ussd_router)
 
 @app.websocket("/ws/fleet/{vehicle_id}")
 async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
@@ -72,17 +94,13 @@ async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
         tags=["Fleet Management"], 
         response_model=None)
 
-async def register_vehicle_and_generate_qrs(vehicle: dict = Body(...), background_tasks: BackgroundTasks = None):
+async def register_vehicle_and_generate_qrs(background_tasks: BackgroundTasks, vehicle: dict = Body(...)):
     vehicle_id = vehicle.get("vehicle_id")
     seat_count = vehicle.get("seat_count")
 
     if not vehicle_id or not isinstance(seat_count, int) or seat_count <= 0:
         raise HTTPException(status_code=400, detail="Invalid vehicle identity profile.")
     
-    # If FastAPI fails to inject it natively due to environment type mismatches, initialize manually
-    if background_tasks is None:
-        background_tasks = BackgroundTasks()
-
     # Queue fleet asset generation in the background
     background_tasks.add_task(auto_generate_fleet_assets, vehicle_id, seat_count)
 
@@ -90,6 +108,29 @@ async def register_vehicle_and_generate_qrs(vehicle: dict = Body(...), backgroun
         "status": "registration_initiated",
         "message": f"Fleet assets and seat sticker generation started for taxi: {vehicle_id}",
     }
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Formats validation errors into Elertrum's ErrorDetail schema for events routes."""
+    if request.url.path.startswith("/payments/events-api/v1"):
+        first_error = exc.errors()[0] if exc.errors() else {}
+        loc = " -> ".join(str(l) for l in first_error.get("loc", []))
+        msg = first_error.get("msg", "Invalid payload format")
+
+        error_detail = ErrorDetail(
+            schema="ErrorDetail",
+            message="Request validation failed",
+            detail=f"{loc}: {msg}"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            content=error_detail.model_dump(by_alias=True)
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()}
+    )
 
 
 @app.get("/ping", tags=["Health Check"])
