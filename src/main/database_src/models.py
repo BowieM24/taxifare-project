@@ -1,11 +1,33 @@
 import uuid
+import os
 
 from typing import List
 from datetime import datetime
+
 from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, Boolean  # type: ignore[import]
+from sqlalchemy.types import TypeDecorator, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore[import]  
 from sqlalchemy.dialects.postgresql import UUID # type: ignore[import]
+from cryptography.fernet import Fernet
 from .database import Base
+
+# Note: load from environment variables safely
+encryption_key = os.getenv("ENCRYPTION_KEY", Fernet.generate_key().decode())
+cipher_suite = Fernet(encryption_key)
+
+class EncryptedString(TypeDecorator):
+    impl = String
+
+    def process_bind_param(self, value, dialect):
+        if value:
+            return cipher_suite.encrypt(value.encode('utf-8')).decode('utf-8')
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value:
+            return cipher_suite.decrpt(value.encode('utf-8')).decode('utf- 8')
+        return value
+
 
 class Commuter(Base):
     """
@@ -14,9 +36,10 @@ class Commuter(Base):
     """
     __tablename__ = "commuters"
 
+    # EncryptedString() to ensure POPIA compliance
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    phone_number: Mapped[str] = mapped_column(String(15), unique=True, nullable=False, index=True)  # E. 164 format (+27...)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    phone_number: Mapped[str] = mapped_column(EncryptedString(255), unique=True, nullable=False, index=True)  # E. 164 format (+27...)
+    name: Mapped[str] = mapped_column(EncryptedString(255), nullable=False)
     wallet_balance: Mapped[float] = mapped_column(Numeric(precision=10, scale=2), default=0.00, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
