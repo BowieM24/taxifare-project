@@ -26,10 +26,10 @@ async def process_offline_transaction():
                 payload = json.loads(payload_str)
 
                 try:
-                    logger_info(f"[WORKER] Attempting to process queued fare for: {payload['phone_number']}")
+                    logger.info(f"[WORKER] Attempting to process queued fare for: {payload['phone_number']}")
 
                     # Attempt to hit the live gateway again
-                    await charge_commuter_account_via_electrum(
+                    await charge_commuter_account_via_electrum.call_async(
                         amount=payload["amount"],
                         phone_number=payload["phone_number"],
                         vehicle_id=payload["vehicle_id"]
@@ -39,7 +39,7 @@ async def process_offline_transaction():
                 except CircuitBreakerError:
                     logger.warning(f"[WORKER] Gateway still down. Re-queueing {payload['phone_number']}...")
                     # Gateway is still failing. Push it back to the right side of the queue (FIFO)
-                    await redis_client.lpush("offline_ussed_transactions", payload_str)
+                    await redis_client.lpush("offline_ussd_transactions", payload_str)
 
                     # Sleep for 60 seconds to give the bank time to recover before retrying
                     await asyncio.sleep(60)
@@ -49,7 +49,7 @@ async def process_offline_transaction():
                     # Push unrecoverable errors to a dead-letter queue for manual developer review
                     await redis_client.lpush("dead_letter_ussd_transactions", payload_str)
 
-        except asyncio.CancellledError:
+        except asyncio.CancelledError:
             logger.info("[WORKER] Worker shutting down gracefully.")
             break
         except Exception as e:
