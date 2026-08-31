@@ -10,7 +10,7 @@ from src.main.database_src.redis import redis_client
 
 def idempotent_transaction(expire_seconds: int = 86400):
     """
-    Prevents deuplicate processing of the smae request within the specified timeframe.
+    Prevents duplicate processing of the smae request within the specified timeframe.
     Caches the original response and retunrs it fi the exact same request is received again.
     """
     def decorator(func):
