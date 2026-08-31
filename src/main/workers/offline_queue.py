@@ -8,7 +8,7 @@ from src.main.core.electrum_gateway import charge_commuter_account_via_electrum
 
 logger = logging.getLogger("offline_queue_worker")
 
-async def process_offline_transaction():
+async def process_offline_transactions():
     """
     Continuous background loop that monitors Redis for offline transactions
     and attempts to process them when the Electrum gateway is healthy.
@@ -29,7 +29,7 @@ async def process_offline_transaction():
                     logger.info(f"[WORKER] Attempting to process queued fare for: {payload['phone_number']}")
 
                     # Attempt to hit the live gateway again
-                    await charge_commuter_account_via_electrum.call_async(
+                    await charge_commuter_account_via_electrum(
                         amount=payload["amount"],
                         phone_number=payload["phone_number"],
                         vehicle_id=payload["vehicle_id"]
