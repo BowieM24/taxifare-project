@@ -17,13 +17,13 @@ async def charge_commuter_account_via_electrum(amount: float, phone_number: str,
             "amount": amount,
             "proxy_id": phone_number,
             "reference": vehicle_id
-            }
+        }
 
             # This will raise an exception if Electrum times out, triggering thr breaker
-            response = await client.post(
-                "https://api.electrum.co.za/v1/transactions/outbound", 
-                json=payload,
-                timeout=5.0
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await client.post(
+            "https://api.electrum.co.za/v1/transactions/outbound", 
+            json=payload,
+            timeout=5.0
+        )
+        response.raise_for_status()
+        return response.json()
