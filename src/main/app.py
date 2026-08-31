@@ -6,14 +6,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from src.main.core.verifynow_gateway import validate_vehicle_registration
 from src.main.core.security import router as security_router
 from src.main.api.payments import router as payments_router
 from src.main.api.notification import router as notification_router # type: ignore[import]
 from src.main.schemas.electrum_events import ErrorDetail
 from src.main.workers.offline_queue import process_offline_transactions
 
-from .api.ussd import router as ussd_router3
+from .api.ussd import router as ussd_router
 from .api.telematics import router as telematics_router
 from .api.simulate_ussd import router as simulate_ussd_router
 from .api.electrum_events import router as electrum_events_router
@@ -22,7 +26,7 @@ from .database_src.database import async_engine   # type: ignore[import]
 from .database_src.redis import redis_client      # type: ignore[import]
 from .sockets.connection_manager import manager
 from .utils.fleet_generator import auto_generate_fleet_assets
-
+from .utils.rate_limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,6 +65,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TaxiFare™ Telematic API", version="1.0.0", lifespan=lifespan)
 
+# Rate Limiter Configuration
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -87,26 +95,34 @@ async def websocket_fleet_endpoint(websocket: WebSocket, vehicle_id: str):
     except WebSocketDisconnect:
         manager.disconnect(vehicle_id, websocket)
 
-
 @app.post(
         "/fleet/register", 
         status_code=status.HTTP_201_CREATED, 
         tags=["Fleet Management"], 
         response_model=None)
-
-async def register_vehicle_and_generate_qrs(background_tasks: BackgroundTasks, vehicle: dict = Body(...)):
+@limiter.limit("10/minute")
+async def register_vehicle_and_generate_qrs(request: Request, background_tasks: BackgroundTasks, vehicle: dict = Body(...)):
     vehicle_id = vehicle.get("vehicle_id")
     seat_count = vehicle.get("seat_count")
+    registration_number = vehicle.get("registration_number")
+    vin = vehicle.get("vin")
 
     if not vehicle_id or not isinstance(seat_count, int) or seat_count <= 0:
         raise HTTPException(status_code=400, detail="Invalid vehicle identity profile.")
     
-    # Queue fleet asset generation in the background
+    if not registration_number or not vin:
+        raise HTTPException(status_code=400, detail="Registration number and VIN are required for compliance validation.")
+
+    # 1. Validate vehicle legally exists and is roadworthy before onboarding
+    validation_result = await validate_vehicle_registration(registration_number, vin)
+    
+    # 2. Queue fleet asset generation in the background
     background_tasks.add_task(auto_generate_fleet_assets, vehicle_id, seat_count)
 
     return {
         "status": "registration_initiated",
         "message": f"Fleet assets and seat sticker generation started for taxi: {vehicle_id}",
+        "compliance_data": validation_result
     }
 
 @app.exception_handler(RequestValidationError)
