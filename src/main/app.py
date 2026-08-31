@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from sqlalchemy import text     # type: ignore[import]
 from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import import RateLimitExceeded
+from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from src.main.core.verifynow_gateway import validate_vehicle_registration
