@@ -9,7 +9,7 @@ variables:
   POSTGRES_HOST_AUTH_METHOD: trust
 
   # Environment Variables consumed by config.py
-  DATABASE_URL: "postgresql+asyncpg://test_user:test_password@postgres5432/taxifare_test_db"
+  DATABASE_URL: "postgresql+asyncpg://test_user:test_password@postgres:5432/taxifare_test_db"
   REDIS_URL: "redis://redis:6379/0"
   ELECTRUM_API_KEY: "ci_test_electrum_key"
   ELECTRUM_WEBHOOK_SECRET: "ccci_test_webhook_secret"
@@ -35,13 +35,13 @@ before_script:
   - apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev
   - python -m pip install --upgrade pip
   - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-  - pip install pytest pytest-asyncio httpx aiosqlite redis qrcode pydantic-settings
+  - pip install pytest pytest-asyncio httpx aiosqlite redis qrcode pydantic-settings slowapi aiobreaker cryptography
 
 pytest_integration_tests:
   stage: test
   script:
     - echo "🚀 Running TaxiFare™ Automated Integration Test Suite in GitLab CI..."
-    - pytest -v src/main/tests/
+    - python -m pytest -v src/main/tests/
   only:
     - merge_requests
     - main
