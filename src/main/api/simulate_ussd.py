@@ -3,9 +3,10 @@ from fastapi import APIRouter, Request, HTTPException      # type: ignore[import
 from pydantic import BaseModel              # type: ignore[import]
 from aiobreaker import CircuitBreakerError
 
-from src.main.database_src.redis import redis_client
 from src.main.core.electrum_gateway import charge_commuter_account_via_electrum
 from src.main.utils.idempotency import idempotent_transaction   # type: ignore[import]
+from src.main.database_src.redis import redis_client
+from src.main.utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/ussd", tags=["ussd"])
 
@@ -16,6 +17,7 @@ class USSDPaymentPayload(BaseModel):
     pin_entered: str
 
 @router.post("/confirm-fare")
+@limiter.limite("5/minute")
 @idempotent_transaction(expire_seconds=86400)
 async def confirm_ussd_fare(request: Request, payload: USSDPaymentPayload):
     try:
