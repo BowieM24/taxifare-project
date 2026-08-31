@@ -150,5 +150,5 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.get("/ping", tags=["Health Check"])
-async def ping():
+async def ping(request: Request):
     return {"status": "alive", "platform": "TaxiFare™ Core"}
