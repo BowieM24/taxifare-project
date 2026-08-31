@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks       # type: igno
 from pydantic import BaseModel          # type: ignore[import]
 
 from ..database_src.redis import redis_client
-from ..api.notification import send_sms_receipt
+from src.main.api.notification import send_sms_receipt
 
 
 logger = logging.getLogger(__name__)
