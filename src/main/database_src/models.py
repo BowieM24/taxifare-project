@@ -25,7 +25,7 @@ class EncryptedString(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         if value:
-            return cipher_suite.decrpt(value.encode('utf-8')).decode('utf- 8')
+            return cipher_suite.decrypt(value.encode('utf-8')).decode('utf- 8')
         return value
 
 
