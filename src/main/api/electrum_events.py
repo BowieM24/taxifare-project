@@ -3,12 +3,18 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, status, Request 
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from src.main.schemas.electrum_events import ElectrumEventPayload
-from src.main.database_src.database import async_session_maker
+from src.main.database_src.database import AsyncSessionLocal
 from src.main.database_src.models import Transaction
 from src.main.sockets.connection_manager import manager
+
+class ErrorDetail(BaseModel):
+    schema: str
+    message: str
+    detail: str
 
 logger = logging.getLogger("electrum_events")
 router = APIRouter(prefix="/payments/events-api/v1", tags=["Electrum Events"])
@@ -17,7 +23,7 @@ router = APIRouter(prefix="/payments/events-api/v1", tags=["Electrum Events"])
 REJECTION_EVENT_TYPES = {
     "CREDIT_AUTH_REJECTED",
     "RTC_INBOUND_CREDIT_AUTH_REJECTED",
-    "CREDIT_AUTH_TIMEOUT,
+    "CREDIT_AUTH_TIMEOUT"
     "CREDIT_AUTH_DECLINED",
     "CREDIT_AUTH_DECLINED_NACK",
     "CREDIT_COMPLETION_REJECTED",
@@ -45,7 +51,7 @@ async def handle_transaction_events(event: ElectrumEventPayload):
         return
 
     try:
-        async with async_session_maker() as db_session:
+        async with get_async_session() as db_session:
             # Locate transaction by external refernce/UETR
             stmt = select(Transaction).where(Transaction.external_provider_refernce == uetr)
             result = await db_session.execute(stmt)
@@ -60,7 +66,7 @@ async def handle_transaction_events(event: ElectrumEventPayload):
                 await db_session.commit()
 
                 # Notify driver terminal 
-                await manager.boardcast_seat_upate(
+                await manager.broadcast_seat_update(
                     vehicle_id=str(tx.vehicle_id),
                     seat_id=tx.seat_number,
                     amount=float(tx.amount),
@@ -104,7 +110,7 @@ async def receive_electrum_event(event: ElectrumEventPayload, background_tasks: 
         # Validate that the event has a valid discriminator/ class[cite: 2]
         if not event.event_class and not event.name:
             error_response = ErrorDetail(
-                shema="ErrorDetail",
+                schema="ErrorDetail",
                 message="Invalid event payload",
                 detail="Missing required 'class' or name event identifier."
             )
