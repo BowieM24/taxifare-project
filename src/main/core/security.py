@@ -40,7 +40,7 @@ async def  request_payment_otp(payload: OTPGenerateRequest, background_tasks: Ba
 
     # Simulate sending SMS in the background
     sms_message = f"TaxiFare™: Your payment authorization PIN is {otp}. Do not share this code. Valid for 3 minutes."
-    background_tasks.add_task(send_sms_receipt, payload.phone_number, sms_message)   # Update SMS function to accept custom text if needed
+    background_tasks.add_task(send_sms_receipt, payload.phone_number, sms_message)
 
     logger.info(f"OTP generated for {payload.phone_number}")
     return {"message": "OTP sent to your registered mobile number."}
