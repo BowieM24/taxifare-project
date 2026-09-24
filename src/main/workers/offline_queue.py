@@ -30,6 +30,7 @@ async def process_offline_transactions():
 
                     # Attempt to hit the live gateway again
                     await charge_commuter_account_via_electrum(
+                        func=payload.get("func"),
                         amount=payload["amount"],
                         phone_number=payload["phone_number"],
                         vehicle_id=payload["vehicle_id"]
