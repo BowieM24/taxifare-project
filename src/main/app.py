@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager   # type: ignore[import]
 
-from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status, Request  # type: ignore[import]
+from fastapi import FastAPI, BackgroundTasks, Body, HTTPException, WebSocket, WebSocketDisconnect, status, Request, Depends  # type: ignore[import]
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
@@ -10,6 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+#from src.main.services.redis_service import rate_limit_dependency
 from src.main.core.verifynow_gateway import validate_vehicle_registration
 from src.main.core.security import router as security_router
 from src.main.api.payments import router as payments_router
@@ -117,7 +118,7 @@ async def register_vehicle_and_generate_qrs(request: Request, background_tasks: 
     validation_result = await validate_vehicle_registration(registration_number, vin)
     
     # 2. Queue fleet asset generation in the background
-    background_tasks.add_task(auto_generate_fleet_assets, vehicle_id, seat_count)
+    background_tasks.add_task(auto_generate_fleet_assets, request, vehicle_id, seat_count)
 
     return {
         "status": "registration_initiated",
