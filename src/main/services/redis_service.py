@@ -1,24 +1,29 @@
+from fastapi import Request, HTTPException, status  # type: ignore[import]
 import logging
 from src.main.database_src.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
-async def is_rate_limited(commuter_id: str, limit: int=5, window_seconds: int=60) -> bool:
+async def rate_limit_dependency(request: Request):
     """
-    Atomic fixed-window rate limiter using Redis INCR and EXPIRE.
-    Allows up to 'limit' payment requests per 'window_seconds'.
+    FastAPI Dependency that rate-limits based on the client's IP address.
+    Limits to 60 requests per minute per IP.
     """
-    key = f"rate_limit:commuter:{commuter_id}"
-
-    # Increment counter atomically
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"rate_limit:ip:{client_ip}"
+    
     current_requests = await redis_client.incr(key)
-
-
-    # If it is the first request in the window, set expiration time
     if current_requests == 1:
-        await redis_client.expire(key, window_seconds)
+        await redis_client.expire(key, 60)  # 60-second window
+        
+    if current_requests > 60:
+        logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please slow down."
+        )
 
-    return current_requests > limit
+    return current_requests
 
 
 async def is_transaction_processed(transaction_id: str, ttl_seconds: int = 86400) -> bool:
