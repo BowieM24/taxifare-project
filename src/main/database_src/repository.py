@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Oprional, Tuple
+from typing import List, Optional, Tuple
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +31,7 @@ async def get_or_create_commuter(db: AsyncSession, phone_number: str) -> Commute
 # ----- VEHICLE PERSISTENCE ------
 async def get_vehicle_by_registration(db: AsyncSession, fleet_id: str) -> Optional[Vehicle]:
     """ Fetches a vehicle profile using parameterized lookup."""
-    stmt select(Vehicle).where(Vehicle.fleet_id == fleet_id)
+    stmt = select(Vehicle).where(Vehicle.fleet_id == fleet_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
