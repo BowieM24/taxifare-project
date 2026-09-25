@@ -2,12 +2,13 @@ import hmac
 import hashlib
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, Header  # type: ignore[import]
+from fastapi import APIRouter, HTTPException, Request, Header, Depends  # type: ignore[import]
 from pydantic import BaseModel  # type: ignore[import]
 
 from src.main.config import settings
-from src.main.services.redis_service import is_rate_limited, is_transaction_processed
+from src.main.services.redis_service import is_rate_limited, is_transaction_processed, rate_limit_dependency
 from src.main.sockets.connection_manager import manager
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ async def send_sms_receipt(commuter_id: str) -> None:
 
 
 # ------- ENDPOINTS ------------
-@router.post("/process-fare", response_model = TransactionResponse)
+@router.post("/process-fare", response_model = TransactionResponse, dependencies=[Depends(rate_limit_dependency)])
 async def process_fare(payment: PaymentRequest):
     """ Processes instant fare request with rate limiting and 2FA PIN check."""
     # 1. Redis Rate Limiting Protection(5 requests per 60s)
