@@ -2,7 +2,7 @@ import os
 
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker    # type: ignore[import]
-from sqlalchemy.orm import declarative_base, sessionmaker   # type: ignore[import]
+from sqlalchemy.orm import declarative_base   # type: ignore[import]
 
 
 # Database connection URL - Fallback to a local dev string if env vars aren't set
@@ -23,7 +23,7 @@ async_engine = create_async_engine(
 )
 
 # Session factory for generating isolated transaction workloads
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
