@@ -1,10 +1,24 @@
 import secrets
 import logging
-from fastapi import APIRouter, HTTPException, BackgroundTasks       # type: ignore[import]
+
+from datetime import datetime, timedelta
+from jose import jwt, JWTError      # type: ignore[import]
+from passlib.context import CryptContext    # type: ignore[import]
+
+from sqlalchemy.ext.asyncio import AsyncSession     # type: ignore[import]
+from sqlalchemy import select     # type: ignore[import]
+
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, status       # type: ignore[import]
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm    # type: ignore[import]
 from pydantic import BaseModel          # type: ignore[import]
+
 
 from ..database_src.redis import redis_client
 from src.main.api.notification import send_sms_receipt
+
+from src.main.config import settings
+from src.main.database_src.database import get_db
+from src.main.database_src.models import Driver
 
 
 logger = logging.getLogger(__name__)
@@ -69,3 +83,94 @@ async def verify_payment_otp(payload: OTPVerifyRequest):
         "status": "authenticated",
         "message": "Payment authorized successfully."
     }
+
+# Password Hashing Context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/driver/login")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_paasword_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict) -> str:
+    """ Generates a JWT valid for the duration of the driver's shift."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
+
+
+@router.post("/driver/login")
+async def login_for_access_token(
+    from_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+
+    """
+    Driver Login Endpoint.
+    Accepts 'username' and 'password' as from data, returns a JWT access token.
+    """
+    # 1. Look up driver in PostgreSQL
+    stmt = select(Driver).where(Driver.username == from_data.username)
+    result = await db.execute(stmt)
+    driver = result.scalar_one_or_none()
+
+    # 2. Verify credentials
+    if not driver or not verify_password(from_data.password, driver.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_402_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not driver.is_active:
+        raise HTTPException(status_code=400, detail="Driver account is suspended.")
+
+    # 3. Generate Token
+    access_token = create_access_token(
+        data={"sub": driver.username, "driver_id": driver.id, "vehicle_id": driver.vehicle_id}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "vehicle_id": driver.vehicle_id
+    }
+
+async def get_current_driver(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Driver:
+    """
+    Decodes the JWT Bearer token, verifies its expiration,
+    and returns the authenticated Driver object from PostgreSQL.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate driver credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    # Fetch driver from database to ensure account is still active
+    stmt = select(Driver).where(Driver.username == username)
+    result = await db.execute(stmt)
+    driver = result.scalar_one_or_none()
+
+    if driver is None or not driver.is_active:
+        raise credentials_exception
+
+    return driver
