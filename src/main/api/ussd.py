@@ -5,6 +5,7 @@ from sqlalchemy import select, update  # type: ignore[import]
 
 from ..database_src.database import get_db  # type: ignore[import]
 from ..database_src.models import Commuter, Transaction, Vehicle  # type: ignore[import]
+from ..database_src.repository import get_or_create_commuter, get_or_create_vehicle, create_transaction, get_recent_rides
 
 # Import connection manager workspace instance
 from ..sockets.connection_manager import manager
@@ -50,20 +51,8 @@ async def ussd_handler(
     text: Optional[str] = Form(""),   # Changed From(...) to Form("") to accept the initial dial empty string
     db: AsyncSession = Depends(get_db)  # Inject the database session for async operations
 ):
-    # Fetch or auto-provision commuter record by phone number
-    stmt = select(Commuter).where(Commuter.phone_number == phoneNumber)
-    result = await db.execute(stmt)
-    commuter = result.scalars().first()
-
-    if not commuter:
-        commuter = Commuter(
-            phone_number = phoneNumber,
-            name = "Passenger",
-            wallet_balance = 0.00
-        )
-        db.add(commuter)
-        await db.commit()
-        await db.refresh(commuter)
+    # Fetch or auto-provision commuter record via Repository
+    commuter = await get_or_create_commuter(db, phoneNumber)
 
     # Split the input text to determine menu depth
     text_segments = text.split("*") if text else []
@@ -96,17 +85,8 @@ async def ussd_handler(
                 f"Your current TaxiFare™ wallet balance is: {formatted_balance}"
             )
         elif selection == "3":
-            # Dynamic Ride History Engine Lookup via PostgreSQL
-            txt_stmt = (
-                select(Transaction, Vehicle)
-                .join(Vehicle, Transaction.vehicle_id == Vehicle.id)
-                .where(Transaction.commuter_id == commuter.id)
-                .order_by(Transaction.created_at.desc())
-                .limit(3)
-            )
-            
-            tx_res = await db.execute(txt_stmt)
-            trips = tx_res.all()
+            # Dynamic Ride History Engine Lookup via repository
+            trips = await get_recent_rides(db, commuter.id, limit=3)
             
             if not trips:
                 response_text = ("END No recent rides found associated with this mobile profile.")
@@ -139,9 +119,10 @@ async def ussd_handler(
         if not (1 <= int(seat_number) <= 14):
             response_text = "END Seat number must be between 1 and 14."
         else:
-            response_text = (f"CON Select Payment Method for Seat {seat_number}:\n"
-            "1. MTN MoMo\n"
-            "2. Linked Bank Account")
+            response_text = (
+                f"CON Select Payment Method for Seat {seat_number}:\n"
+                "1. MTN MoMo\n"
+                "2. Linked Bank Account")
 
     #---------- LEVEL 3 ---------------------
     # User selected a payment method (Payment Orchestration and Socket State Dispatch)
@@ -159,34 +140,24 @@ async def ussd_handler(
         # Pull accurate registration key(we lookup  by route)
         target_taxi_id = lookup_vehicle(sessionId)
         
-        # Look up vehicle from databse to attach foreign key to transaction record
-        v_stmt = select(Vehicle).where(Vehicle.fleet_id == target_taxi_id)
-        v_result = await db.execute(v_stmt)
-        vehicle = v_result.scalars().first()
-
-        # If vehicle doesn't exist yet, auto-provision temporary record so transaction constraint passes
-        if not vehicle:
-            vehicle = Vehicle(
-                fleet_id=target_taxi_id, 
-                license_plate="ND 351-654", 
-                total_seats=14
-            )
-            db.add(vehicle)
-            await db.commit()
-            await db.refresh(vehicle)
-        
-        # Record transaction entry in PostgreSQL
-        new_transaction = Transaction(
+        # 2. Fetch or auto-provision record via Repository
+        vehicle = await get_or_create_vehicle(
+            db=db, 
+            fleet_id=target_taxi_id, 
+            license_plate="ND 351-654", 
+            total_seats=14
+        )
+    
+        # 3. Record transaction entry in PostgreSQL via Repository
+        new_transaction = await create_transaction(
+            db=db,
             commuter_id=commuter.id,
-            vehicle_id=vehicle.id,
-            amount=22.00,   #Standard fare baseline for that route
+            vehicle_id=vehicle.id, 
             seat_number=int(seat_number),
+            amount=22.00,   #Standard fare baseline for that route
             payment_method=method_name,
             status="PENDING"
         )
-        db.add(new_transaction)
-        await db.commit()
-
 
         # --- WEB-SOCKET REAL-TIME BROADCAST TRIGGER ---
         # Fire a background broadcast to immediately alert the drivers display app
@@ -194,8 +165,8 @@ async def ussd_handler(
         await manager.broadcast_seat_update(
             vehicle_id=target_taxi_id,
             seat_id=int(seat_number),
-            tx_id=new_transaction.id,
-            amount=new_transaction.amount,
+            amount=float(new_transaction.amount),
+            tx_id=str(new_transaction.id),
             status="PAID")
 
         response_text = (
