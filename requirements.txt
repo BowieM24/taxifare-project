@@ -125,3 +125,4 @@ zipp==4.1.0
 passlib[bcrypt]>=1.7.4
 python-jose[cryptography]>=3.3.0
 python-multipart>=0.0.6
+jose>=1.0.0
