@@ -1,9 +1,9 @@
 from decimal import Decimal
 import uuid
 
-from fastapi import HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException       # type: ignore[import]
+from sqlalchemy import select       # type: ignore[import]
+from sqlalchemy.ext.asyncio import AsyncSession     # type: ignore[import]
 from src.main.database_src.models import Commuter, Transaction
 
 
