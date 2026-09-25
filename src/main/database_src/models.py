@@ -4,11 +4,11 @@ import os
 from typing import List
 from datetime import datetime
 
-from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, Boolean  # type: ignore[import]
-from sqlalchemy.types import TypeDecorator, String
+from sqlalchemy import String, Numeric, Integer, DateTime, ForeignKey, Boolean, Column  # type: ignore[import]
+from sqlalchemy.types import TypeDecorator, String  # type: ignore[import]
 from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore[import]  
 from sqlalchemy.dialects.postgresql import UUID # type: ignore[import]
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet  # type: ignore[import]
 from .database import Base
 
 # Note: load from environment variables safely
@@ -91,3 +91,15 @@ class Transaction(Base):
     vehicle: Mapped["Vehicle"] = relationship("Vehicle", back_populates="transactions")
 
 
+class Driver(Base):
+    """ Links driver to their assigned vehicle"""
+    __tablename__ = "drivers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    # Link driver to a specific taxi
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
+    vehicle = relationship("Vehicle")
