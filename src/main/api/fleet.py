@@ -10,17 +10,45 @@ from ..database_src.database import get_db
 from ..database_src.models import Vehicle, Driver
 from ..database_src.redis import redis_client
 from ..core.security import get_current_driver
+from ..database_src.repository import get_vehicle_by_registration
 
 router = APIRouter(prefix="/fleet", tags=["Fleet Management"])
+
+@router.get("/{vehicle_id}/layout")
+async def get_vehicle_seat_layout(vehicle_id: str, db: AsyncSession = Depends(get_db)):
+    cache_key = f"cache:vehicle:{vehicle_id}"
+
+    # 1. Check Redis Cache First
+    cached_data = await redis_client.get(cache_key)
+    if cached_data:
+        return json.load(cached_data)   # Cache HIT
+
+    # 2. Cache MISS: Query PostgreSQL via Repository
+    vehicle = await get_vehicle_by_registration(db, vehicle_id)
+
+
+    if not vehicle:
+        raise HTTPException(status_code=404, details="Vehicle identity not found.")
+
+    response_payload = {
+        "vehicle_id": vehicle.fleet_id, 
+        "license_plate": vehicle.license_plate,
+        "capacity": vehicle.total_seats,
+    }
+
+    # 3. Save to Redis for 1 hour (3600 seconds)
+    await redis_client.set(cache_key, json.dumps(response_payload), ex=3600)
+
+    return response_payload
 
 @router.get("/driver/active-shift")
 async def get_driver_active_shift(
     current_driver: Driver = Depends(get_current_driver),
     db: AsyncSession = Depends(get_db)
 ):
-
     """
-    Protected Endpoint: Only accessible with a valid Driver Bearer Token.
+    Protected Endpoint: Requires a valid Driver JWT Bearer Token.
+    Returns the driver's profile and assigned taxi for the HUD tablet.
     """
     return {
         "driver_id": current_driver.id,
