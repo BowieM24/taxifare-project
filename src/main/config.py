@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost:5432/taxifare"
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # ---- JWT Security Settings ----
+    JWT_SECRET_KEY: str = "generate_a_random_secure_string_for_production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 720  # 12-hour shift duration
+
     # Pydantic V2 Configuration
     model_config = SettingsConfigDict(
         env_file=".env",
