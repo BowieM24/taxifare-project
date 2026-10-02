@@ -89,3 +89,6 @@ This repository is currently a functional prototype and not yet a production-rea
 ## License
 
 This project is intended for prototype and demonstration purposes. Update the licensing terms before production use.
+
+Verification Code:
+WTC-FB8WBV9S
