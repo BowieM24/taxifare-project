@@ -1,101 +1,91 @@
-# TaxiFare
+# TaxiFare Project
 
-**Digital Payment Solution for Minibus Taxi Transport**
+TaxiFare is a digital payment and fleet-management prototype for minibus taxi operations in South Africa. The current implementation focuses on a FastAPI backend that demonstrates QR-driven seat payment, USSD-based passenger interaction, and live seat updates through WebSockets for a driver dashboard simulation.
 
-TaxiFare is a comprehensive digital payment and management system designed to modernize minibus taxi operations across South Africa. By replacing cash-based fare collection with secure QR code and USSD payments, TaxiFare eliminates theft risks, improves operational efficiency, and provides real-time transaction data for better planning and growth.
+## What changed from the original plan
 
-## Documentation
+The original concept envisioned a broader product stack with a separate mobile app, a richer payment gateway, and a more formal database-backed backend. The current repository reflects a more focused prototype phase:
 
-- **[Flow Diagram](./TaxiFare_flow_diagram_.pdf)** - System architecture and process flow
-- **[Presentation](./TaxiFare_BeOrchid_Presentation.pptx)** - Project overview and key features
-- **[Development Roadmap](./Developement_roadmap.docx)** - Project timeline and milestones
+- The backend is implemented with FastAPI instead of a full Node.js or mobile-first stack.
+- USSD payment flow and seat status updates are already wired to a simulated driver dashboard.
+- QR code generation is local and file-based for fleet asset setup rather than fully integrated with a production database.
+- Payment handling and notification behaviour are currently mocked or placeholder-based.
+- The dashboard is a lightweight HTML simulation rather than a production web application.
 
-## Features
+## Current project structure
 
-- **QR Code Payment System** - Every seat in the minibus has a designated QR code for seamless fare collection
-- **USSD Integration** - Commuters are directed to their banking app to approve transactions with a temporary PIN
-- **Real-time Seat Status** - Driver dashboard displays seat availability in real-time (green for available)
-- **Digital Transaction Receipts** - SMS receipts sent to commuters for every transaction
-- **Commuter Profiles** - Track commuter history and transaction data
-- **Revenue Analytics** - Comprehensive trip and revenue data for planning and growth
+```text
+taxifare-project/
+├── src/
+│   └── main/
+│       ├── app.py
+│       ├── api/
+│       │   ├── ussd.py
+│       │   ├── telematics.py
+│       │   └── notification.py
+│       ├── sockets/
+│       │   └── connection_manager.py
+│       ├── dashboard/
+│       │   └── driver_dashboard_sim.html
+│       ├── services/
+│       │   ├── vehicle_service.py
+│       │   └── payment_service.py
+│       ├── models/
+│       └── utils/
+│           ├── fleet_generator.py
+│           └── qr_generator.py
+├── assets/
+├── README.md
+└── requirements.txt
+```
 
-## System Architecture
+## Core capabilities
 
-TaxiFare consists of three main components:
+- USSD payment flow for seat selection and payment method selection
+- WebSocket-based seat status broadcasting to the dashboard simulation
+- Telematics-inspired seat state evaluation for occupancy changes
+- QR fleet asset generation for vehicle seat stickers
+- A simple service layer for future expansion into real payment and vehicle persistence
 
-1. **Mobile App** - Commuter-facing application for QR scanning and payment approval
-2. **Backend** - Core system handling payment processing, data management, and real-time updates
-3. **Driver/Merchant Dashboard** - Driver interface for seat management and trip monitoring
+## Run locally
 
-## Tech Stack
+### Prerequisites
 
-| Layer | Technology | Rationale |
-|-------|-----------|----------|
-| **Frontend (Mobile)** | React Native or Flutter | Cross-platform (iOS/Android) with excellent QR scanning and USSD libraries |
-| **Backend** | Node.js (Express) or Python (FastAPI) | High performance for processing TaxiFare transactions |
-| **Database** | PostgreSQL | Relational database for commuter profiles and transaction receipts |
-| **Real-time Updates** | Socket.io or Firebase | Instant seat status updates on driver dashboard |
-| **Payments/SMS** | Stitch/Ozow & Twilio | South African bank-to-bank (EFT) payments and SMS receipts |
+- Python 3.10+
+- pip
 
-## Use Cases & Problem Statement
+### Setup
 
-**Market Context:**
-- Over 15 million commuters daily rely on minibus transport (vital to national transport infrastructure)
-- Current cash-based system causes delays, theft risks, and data gaps
-- Lack of reliable trip and revenue data hinders planning and growth
+```bash
+cd taxifare-project
+python -m venv .venv
+source .venv/bin/activate  # On Windows use .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-**TaxiFare Solution:**
-- Eliminates manual cash handling and associated risks
-- Provides real-time transaction data for better planning
-- Improves operational efficiency and revenue tracking
-- Enhances commuter experience with digital receipts
+### Start the API
 
-***
+```bash
+uvicorn src.main.app:app --reload
+```
 
-# Editing this README
+### Useful endpoints
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- GET /ping
+- POST /ussd
+- POST /telematics/seat-update
+- GET /ws/fleet/{vehicle_id}
+- POST /fleet/register
 
-## Suggestions for a good README
+## Notes on implementation status
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+This repository is currently a functional prototype and not yet a production-ready deployment. The next natural steps are:
 
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+1. Replace simulated payment and notification flows with real provider integrations.
+2. Introduce a persistent database layer for vehicles, seats, and transactions.
+3. Expand the dashboard into a full real-time operational interface.
+4. Add automated tests around the USSD, telematics, and socket workflows.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+This project is intended for prototype and demonstration purposes. Update the licensing terms before production use.

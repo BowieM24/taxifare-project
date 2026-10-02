@@ -1,0 +1,84 @@
+# Alembic Database Migrations - TaxiFare™ Project
+
+## What is Alembic?
+
+Alembic is a lightweight database migration tool for SQLAlchemy, written by the creator of SQLAlchemy. It provides a framework for managing database schema changes in a version-controlled and organized manner. Alembic allows you to:
+
+- **Create versioned migrations** that track all database schema changes over time
+- **Auto-generate migration scripts** by comparing the current database schema with SQLAlchemy models
+- **Execute migrations** in a controlled, repeatable way across different environments
+- **Rollback changes** if needed using downgrade scripts
+- **Maintain consistency** between your Python models and actual database schema
+
+## Alembic Directory Structure
+
+```
+alembic/
+├── versions/          # Contains migration files (each file represents a schema change)
+├── env.py             # Configuration and logic for running migrations
+├── script.py.mako     # Template for generating new migration files
+└── README             # This file
+```
+
+## How Alembic Benefits the TaxiFare™ Project Backend
+
+### 1. **Schema Versioning & Audit Trail**
+- Every database change is tracked with a unique migration file (e.g., `001_initial.py`)
+- Easy to see the history of schema evolution and understand when changes were made
+- Helps with debugging production issues by knowing exactly what schema version is deployed
+
+### 2. **Team Collaboration**
+- Multiple developers can work on different features and create migrations independently
+- Alembic handles the sequencing and ensures all migrations are applied in order
+- Git-friendly: migration files are easy to review and merge
+
+### 3. **Reproducible Deployments**
+- New environments (development, staging, production) can recreate the exact same schema by running all migrations
+- Consistent schema across all deployments reduces environment-specific bugs
+- Docker containers can run migrations automatically during startup (see `docker-compose.yml`)
+
+### 4. **Support for Complex Microservice Architecture**
+Given TaxiFare™'s multi-domain architecture (telematics, payments, USSD, fleet management), Alembic helps:
+- Manage schema changes for different data models (vehicles, drivers, payments, notifications)
+- Support data migrations when refactoring the domain model
+- Handle schema changes without downtime in production
+
+### 5. **Reversibility & Safety**
+- Every migration has both `upgrade()` and `downgrade()` functions
+- If a migration causes issues, you can roll back to a previous schema version
+- Reduces deployment risk and enables faster recovery from mistakes
+
+### 6. **Integration with CI/CD Pipelines**
+- Migrations can be run automatically in deployment pipelines
+- Database schema is versioned alongside application code
+- Ensures database is always in sync with application expectations
+
+## Common Alembic Commands
+
+```bash
+# Generate a new migration (auto-detects changes in models)
+alembic revision --autogenerate -m "description of changes"
+
+# Apply all pending migrations to the database
+alembic upgrade head
+
+# Rollback one migration
+alembic downgrade -1
+
+# View current migration version
+alembic current
+
+# View migration history
+alembic history
+```
+
+## For TaxiFare™ Project Workflow
+
+1. **During Development**: When you modify SQLAlchemy models in `src/main/database_src/models.py`, run `alembic revision --autogenerate` to create a migration file
+2. **Before Deployment**: All team members pull the latest migrations from git and run `alembic upgrade head`
+3. **In Docker**: The startup script should automatically run migrations to ensure the container has the latest schema
+4. **On Rollback**: If an issue arises, use `alembic downgrade` to revert to a known-good state
+
+---
+
+*Alembic keeps your TaxiFare™ database schema organized, versioned, and deployment-ready.*

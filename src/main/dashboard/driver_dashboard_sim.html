@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TaxiFare™ True Blueprint View</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #111416;
+            color: #fff;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .dashboard-frame {
+            background: #1c2124;
+            border: 2px solid #2d3748;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            max-width: 950px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h2 { margin: 0 0 5px 0; color: #f39c12; font-size: 22px; }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            background: #e53e3e;
+            letter-spacing: 0.5px;
+            transition: background 0.3s ease;
+        }
+        .svg-container {
+            width: 100%;
+            height: auto;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .svg-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        .seat-overlay {
+            position: absolute;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            border: 2px solid transparent;
+            letter-spacing: 0.3px;
+            box-sizing: border-box;
+        }
+        .seat-overlay.unpaid {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #f87171;
+        }
+        .seat-overlay.unpaid:hover {
+            background: rgba(239, 68, 68, 0.35);
+            border-color: #ef4444;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .seat-overlay.paid {
+            background: rgba(16, 185, 129, 0.4);
+            border-color: #10b981;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+        }
+        .seat-overlay.paid:hover {
+            background: rgba(16, 185, 129, 0.55);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .seat-overlay.driver-seat {
+            background: rgba(30, 58, 138, 0.45);
+            border-color: #3b82f6;
+            color: #93c5fd;
+            cursor: default;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #a0aec0;
+            justify-content: flex-start;
+            padding-left: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1c2124;
+            border: 1px solid #10b981;
+            border-radius: 10px;
+            padding: 14px 20px;
+            color: #fff;
+            font-size: 13px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            max-width: 300px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast .seat-label {
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="dashboard-frame">
+    <h2>Toyota Quantum 14-Seater Telematics</h2>
+    <p style="margin: 0 0 15px 0; color: #a0aec0; font-size: 13px;">Live Floorplan Stream: <span style="color:#fff">Bree Rank Fleet #4</span></p>
+    <div class="status-badge" id="status-light">CONNECTING TO SOCKET PIPE...</div>
+
+    <div class="svg-container" id="svg-container">
+        <img src="../../assets/14 Seater.svg" alt="14 Seater Minibus Layout" />
+
+        <!-- Driver seat: front-left cab area -->
+        <div class="seat-overlay driver-seat" id="seat-drv" style="left:18.5%; top:11%; width:5.8%; height:13.5%;">DRV</div>
+        <div class="seat-overlay unpaid" id="seat-1" style="left:18.5%; top:73.5%; width:5.8%; height:13.5%;" data-seat="1">S1</div>
+
+        <!-- Front row -->
+        <div class="seat-overlay unpaid" id="seat-2" style="left:38.2%; top:11%; width:5.5%; height:13%;" data-seat="2">S2</div>
+        <div class="seat-overlay unpaid" id="seat-3" style="left:44.5%; top:11%; width:5.5%; height:13%;" data-seat="3">S3</div>
+        <div class="seat-overlay unpaid" id="seat-4" style="left:38.2%; top:74%; width:5.5%; height:13%;" data-seat="4">S4</div>
+
+        <!-- Second row -->
+        <div class="seat-overlay unpaid" id="seat-5" style="left:54%; top:25%; width:4.6%; height:11%;" data-seat="5">S5</div>
+        <div class="seat-overlay unpaid" id="seat-6" style="left:60%; top:40%; width:4.6%; height:11%;" data-seat="6">S6</div>
+        <div class="seat-overlay unpaid" id="seat-7" style="left:60%; top:42.5%; width:5.5%; height:13%;" data-seat="7">S7</div>
+
+        <!-- Third row -->
+        <div class="seat-overlay unpaid" id="seat-8" style="left:69.8%; top:10.5%; width:4.5%; height:13%;" data-seat="8">S8</div>
+        <div class="seat-overlay unpaid" id="seat-9" style="left:75.8%; top:25.5%; width:4.5%; height:13%;" data-seat="9">S9</div>
+        <div class="seat-overlay unpaid" id="seat-10" style="left:75.8%; top:42.5%; width:5.5%; height:13%;" data-seat="10">S10</div>
+
+        <!-- Fourth row -->
+        <div class="seat-overlay unpaid" id="seat-11" style="left:87.2%; top:11%; width:5.5%; height:13%;" data-seat="11">S11</div>
+        <div class="seat-overlay unpaid" id="seat-12" style="left:87.2%; top:31%; width:5.5%; height:13%;" data-seat="12">S12</div>
+        <div class="seat-overlay unpaid" id="seat-13" style="left:87.2%; top:53%; width:5.5%; height:13%;" data-seat="13">S13</div>
+        <div class="seat-overlay unpaid" id="seat-14" style="left:87.2%; top:74%; width:5.5%; height:13%;" data-seat="14">S14</div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.25);"></div> Unpaid</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(16,185,129,0.4);"></div> Paid</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(30,58,138,0.45);"></div> Driver</div>
+    </div>
+</div>
+
+<script>
+    const statusLight = document.getElementById("status-light");
+    const seatOverlays = document.querySelectorAll(".seat-overlay:not(.driver-seat)");
+    const toast = document.getElementById("toast");
+
+    function showToast(message) {
+        toast.innerHTML = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // Manual click override handling for localized testing
+    seatOverlays.forEach(seat => {
+        seat.addEventListener("click", () => {
+            if (seat.classList.contains("unpaid")) {
+                seat.classList.remove("unpaid");
+                seat.classList.add("paid");
+            } else {
+                seat.classList.remove("paid");
+                seat.classList.add("unpaid");
+            }
+        });
+    });
+
+    // WebSocket connection to server endpoint
+    const ws = new WebSocket("ws://localhost:8000/ws/fleet/bree-quantum-xyz-789");
+
+    ws.onopen = () => {
+        statusLight.style.background = "#38a169";
+        statusLight.innerText = "BLUEPRINT ENGINE STREAMING ACTIVE";
+    };
+
+    ws.onclose = () => {
+        statusLight.style.background = "#e53e3e";
+        statusLight.innerText = "STREAM DISCONNECTED";
+    };
+
+    ws.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        if (payload.seat_number) {
+            const target = document.getElementById(`seat-${payload.seat_number}`);
+            if (target) {
+                if (payload.status === "PAID") {
+                    target.classList.remove("unpaid");
+                    target.classList.add("paid");
+                    showToast(`<span class="seat-label">Seat ${payload.seat_number}</span> — Payment Confirmed`);
+                } else if (payload.status === "VACANT") {
+                    target.classList.remove("paid");
+                    target.classList.add("unpaid");
+                }
+            }
+        }
+    };
+</script>
+</body>
+</html>
